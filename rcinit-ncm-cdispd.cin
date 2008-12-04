@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# Init file for ncm-cdispd daemon
+#
+# chkconfig: 345 30 80
+# description: The Configuration Dispatch Daemon
+
+. @QTTR_INITD@/functions
+
+DISPATCH=@QTTR_SBIN@/ncm-cdispd
+RETVAL=0
+prog="ncm-cdispd"
+
+start() {
+    bash -c "echo -n 'Starting $prog:'"
+    daemon "$DISPATCH" -D
+    RETVAL=$?
+    [ "$RETVAL" = 0 ] && touch @LOCKFILE@
+    echo
+}
+
+stop() {
+    bash -c "echo -n 'Stopping $prog:'"
+    killproc $DISPATCH -TERM
+    RETVAL=$?
+    [ "$RETVAL" = 0 ] && rm -f @LOCKFILE@
+    echo
+}
+
+stop() {
+    bash -c "echo -n 'Reloading $prog:'"
+    killproc $DISPATCH -HUP
+    RETVAL=$?
+    echo
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $DISPATCH
+        RETVAL=$?
+        ;;
+    reload)
+        reload
+        ;;
+    restart)
+        stop
+        sleep 1
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|reload|restart|status}"
+        RETVAL=1
+esac
+
+exit $RETVAL

@@ -1,0 +1,6 @@
+@QTTR_LOG@/@COMP@.log {
+    daily
+    notifempty
+    missingok
+    copytruncate
+}

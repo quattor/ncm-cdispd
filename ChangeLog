@@ -1,0 +1,149 @@
+2008-11-05  Marco Emilio Poleggi,<Marco.Poleggi@cnaf.infn.it>
+
+	* Release: 1.1.13
+	- added reload method to init script
+	- wait a bit before starting on restart to avoid possible race conditions
+
+2008-05-29  Veronique Lefebure
+
+	* Release: 1.1.12
+	- redirected output to avoid selinux-related problems
+	.
+
+2006-12-13  German Cancio Melia
+
+	* Release: 1.1.11
+	- Changes thanks to Uwe Ensslin:
+	        - Write a file containing the deamon's pid to /var/run/ncm-cdispd.pid
+	          (This is needed by 'monit' ..) (ncm-cdispd.cin)
+	        - Add 'copytruncate' to logrotate-ncm-cdispd as suggested by Andreas
+	          Nowack. (logrotate-ncm-cdispd.cin)
+	        - Set debug level to 5. (ncm-cdispd.conf)
+
+2006-11-23  German Cancio Melia
+
+	* Release: 1.1.10
+	- Improved info messages
+
+2006-11-23  German Cancio Melia
+
+	* Release: 1.1.9
+	- Fix for bug #19416 (by working around #21846 - do avoid instantiating twice the same config with same CID)
+
+2006-10-30  German Cancio Melia
+
+        * Release: 1.1.8
+        - Added logrotation, thanks to Uwe Ensslin <uwe.ensslin@desy.de>
+
+2005-07-26  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.7
+        - Corrected the Solaris postinstall script
+
+	Now it will start the daemon after the installation of the package
+	but only if the process wp4.install is not running. This process
+	runs when a new machine is installed. If cdp-listend and cdispd 
+	are running while installing a machine, they can call spma without
+	any control at the same time we are installing the packages.
+	
+2005-07-25  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.6
+        - Changed the postinstall script. Now it will not start the daemon after the installation.
+
+2005-07-12  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.5
+        - Updated man page documentation (added default log file)
+
+2005-07-06  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.4
+        - Changed maintainer to Juan and German
+
+2005-07-06  German Cancio Melia
+
+        * Release: 1.1.3
+        - Fixed lockfile directory
+
+2005-06-09  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.2
+        - Solved a bug logging when there is no dispatch flag defined
+
+2005-05-20  Juan Antonio LOPEZ PEREZ
+
+        * Release: 1.1.1
+	
+        - Solved a bug related with the success/failure notification in
+	rcinit-ncm-cdispd.cin . The "success || failure" call on the start 
+	subroutine is not neccesary because the subroutine daemon does that.
+
+	- Solaris porting:
+
+	   - Added the variable QTTR_INITD in the Makefile, the specfile and
+	the rcinit-ncm-cdispd.cin to take into account that in Solaris the
+	startup scripts are in /etc/rc.d while in Linux, at CERN, they are
+	in /etc/rc.d/init.d
+
+	   - Added the variable QTTR_LOCKD in the config.mk and 
+	rcinit-ncm-cdispd.cin files to take into account the different lock
+	directory in Linux and Solaris.
+
+	   - Added the variable QTTR_SBIN in rcinit-ncm-cdispd.cin to take
+	into account the different sbin directory used by Quattor in Linux 
+	and Solaris.
+
+	   - Corrected the lines including "echo -n" and $"...",
+	not supported by the Solaris sh.
+	
+2005-05-05  German Cancio Melia
+
+        * Release: 1.1.0
+        - Fixes Savannah #6273. Failed components will now be re-run by ncm-cd cdispd does now not run deactivated components.
+
+2004-10-28  Rafael Garcia Leiva
+
+        * Release: 1.0.1
+        - updated RPM dependencies
+
+2004-07-01  Rafael Garcia Leiva
+
+        * Release: 1.0.0
+        - add support for a new flag "dispatch" (Savannah task #708), componets should get registered for themselves authomatically (Savannah task #709), NCM should rerun components if they get upgraded (Savannah bugs #3176)
+
+2004-04-29  Rafael Garcia Leiva
+
+        * Release: 0.2.6
+        - a better integration with the quattor build tools
+
+2004-04-08  German CANCIO MELIA
+
+        * Release: 0.2.5
+        - Replaced hardcoded Perl interpreter with @PERL_EXECUTABLE@ for improved portability
+
+2004-03-18  Rafael Garcia Leiva
+
+        * Release: 0.2.4
+        - register_change is optional
+
+2004-03-18  Rafael Garcia Leiva
+
+        * Release: 0.2.3
+        - register_change is optional
+
+2004-02-24  German CANCIO MELIA
+
+        * Release: 0.2.2
+        - verbosed documentation
+
+2004-01-12  Rafael Garcia Leiva
+
+        * Release: 0.2.0
+        - init.d script added
+
+2003-11-04  Rafael Angel Garcia Leiva
+
+        * Release: 0.1.0
+        - First public realease available
+
