@@ -1,3 +1,8 @@
+2009-01-12  Marco Emilio Poleggi,<Marco.Poleggi@cnaf.infn.it>
+
+	* Release: 1.1.14
+	- fixed double stop in init script (one is 'reload' indeed)
+
 2008-11-05  Marco Emilio Poleggi,<Marco.Poleggi@cnaf.infn.it>
 
 	* Release: 1.1.13

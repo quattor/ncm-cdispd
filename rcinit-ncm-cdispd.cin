@@ -27,7 +27,7 @@ stop() {
     echo
 }
 
-stop() {
+reload() {
     bash -c "echo -n 'Reloading $prog:'"
     killproc $DISPATCH -HUP
     RETVAL=$?
