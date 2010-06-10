@@ -1,3 +1,13 @@
+2010-06-10  <unknown>
+
+	* Release: 1.2.0
+	- statedir support
+
+2010-06-10  Nick Williams
+
+	* Release: 1.2.0
+	- new feature (enabled by default): track component state in /var/run 
+
 2009-01-12  Marco Emilio Poleggi,<Marco.Poleggi@cnaf.infn.it>
 
 	* Release: 1.1.14

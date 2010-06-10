@@ -13,14 +13,21 @@
 
 cdispd - Configuration Dispatch Daemon
 
+=head1 SYNOPSIS
+
+cdispd [--interval secs] [--ncd-retries n] [--ncd-timeout n]
+[--ncd-useprofile profile_id] [--noaction] [--cfgfile <file>]
+[--logfile <file>] [--help] [--version] [--verbose]
+[--debug <level>] [--quiet | -D] [--pidfile <file>]
+
 =head1 DESCRIPTION
 
 The Configuration Dispatch Daemon waits for new incoming configuration
-profiles monitoring the CCM cache. In case of changes with respect to
+profiles by monitoring the CCM cache. In case of changes with respect to
 the previous profile, cdispd will invoke the affected components via
 the 'ncd' program.
 
-A components configuration declares which subtrees of the node
+A component's configuration declares which subtrees of the node
 configuration profile it is interested in (see below). If the
 configuration information in or below anyone of these subtrees
 changes/appears/disappears, then cdispd will add the component to the
@@ -35,7 +42,8 @@ ncm-cdispd should trigger the execution of <componentX>.
 By default a component gets registered in its configuration, and in
 its software package.
 
-The cdispd daemon can be skipped by setting the 'dispach' flag to false
+The dispatch of a component can be skipped by setting the 'dispatch' 
+flag to false
 
  "/software/components/spma/dispatch" = false;
 
@@ -43,39 +51,57 @@ If /software/components is not defined, cdispd logs a error message
 and continues to run.
 
 In order to ensure consistency, the following rules apply:
-- If NCM execution (ncm-ncd) fails, cdispd will not increase the
+
+=over 4
+
+=item *
+
+If NCM execution (ncm-ncd) fails, cdispd will not increase the
 current profile pivot. This means that subsequent profile changes will
 be compared to the profile as it was when NCM failed. In such a way,
 failed components are not "forgotten" about (unless they are
 deactivated in the new profile).
-- In the particular case that the last NCM run reported errors (so the
+
+=item *
+
+In the particular case that the last NCM run reported errors (so the
 pivot was not increased) AND no NCM relevant changes between the pivot
 and a new profile are detected, ncm-ncd is invoked for all active
 components.
 
-On ncm-cdispd startup time, ncm-cdispd will make an initial run of all
+=back
+
+On startup, ncm-cdispd will make an initial run of all
 components where the 'dispatch' flag is set to 'true'.
 
 =head1 EXAMPLE
 
-Take as example the NCM configugration component for the SPMA:
+Take as example the NCM configuration component for the SPMA:
 
  #
- # run SPMA comp if anything below /software/packages has changed (eg. packages)
+ # run SPMA comp if anything below /software/packages has changed
+ # (eg. new packages)
  #
  "/software/components/spma/register_change/1" = "/software/packages";
 
 
-=head1 SYNOPSIS
-
-cdispd [--interval secs] [--ncd-retries n] [--ncd-timeout n]
-[--ncd-useprofile profile_id] [--noaction] [--cfgfile <file>]
-[--logfile <file>] [--help] [--version] [--verbose]
-[--debug <level>] [--quiet | -D] [--pidfile <file>]
-
 =head1 OPTIONS
 
 =over 4
+
+=item --state path
+
+Path for a directory in which to record state.  If no state path is
+specified (the default), then no state is maintained.
+
+If a state directory is provided, then ncm-cdispd will touch
+(i.e. create and/or update modified time) files corresponding to
+component names within that directory. These files will be updated
+whenever it is determined that a component needs configuration. Note
+that the 'dispatch' flag is not referred to when creating these state
+files, only the 'active' flag is observed. If a component becomes
+inactive, then any state file for that component will be removed. See
+the corresponding "state" option within ncm-ncd.
 
 =item --interval secs
 
@@ -186,7 +212,7 @@ Universidad Autonoma de Madrid
 
 =head1 VERSION
 
-$Id: ncm-cdispd.cin,v 1.17 2008/11/10 08:44:44 vero Exp $
+$Id: ncm-cdispd.cin,v 1.16 2008/05/29 13:41:33 vero Exp $
 
 =cut
 
@@ -253,6 +279,10 @@ sub app_options() {
 	  DEFAULT => undef },
 
 	# cdispd and ncd common options
+
+        { NAME    => 'state=s',
+          HELP    => 'directory in which to place state files',
+          DEFAULT => undef },
 
         { NAME    => 'logfile=s',
           HELP    => 'path/filename to use for cdispd logs',
@@ -431,28 +461,28 @@ sub daemonize() {
     $logfile = $this_app->option('logfile');
 
     if( !chdir('/') ) {
-        $this_app->error("Can't chdir to /: $! : Exitting");
+        $this_app->error("Can't chdir to /: $! : Exiting");
 	exit(-1);
     }
 
     if( !open(STDIN, '/dev/null') ) {
-        $this_app->error("Can't read /dev/null: $! : Exitting");
+        $this_app->error("Can't read /dev/null: $! : Exiting");
         exit(-1);
     }
 
     if( !open(STDOUT, ">> $logfile") ) {
-        $this_app->error("Can't write to $logfile: $! : Exitting");
+        $this_app->error("Can't write to $logfile: $! : Exiting");
 	exit(-1);
     }
 
     if( !open(STDERR, ">> $logfile") ) {
-        $this_app->error("Can't write to $logfile: $! : Exitting");
+        $this_app->error("Can't write to $logfile: $! : Exiting");
         exit(-1);
     }
 
     $pid = fork();
     if( !defined($pid) ) {
-        $this_app->error("Can't fork: $! : Exitting");
+        $this_app->error("Can't fork: $! : Exiting");
         exit(-1);
     }
     exit if $pid;
@@ -464,6 +494,13 @@ sub daemonize() {
 	  exit(-1);
        }
        print(PIDFILE "$$");
+    }
+
+    if ( $this_app->option('state') ) {
+        my $dir = $this_app->option('state');
+        if (!-d $dir) {
+            mkdir($dir, 0755) or $this_app->warn("Cannot create state dir $dir: $!");
+        }
     }
 
     if( !setsid() ) {
@@ -563,6 +600,15 @@ sub add_component($) {
     $ele = shift;
     $path = $ele->getPath();
     $comp = $path->up();
+
+    if ($this_app->option('state')) {
+       my $file = $this_app->option('state') . '/' . $comp;
+       if (open(TOUCH, ">$file")) {
+           close(TOUCH);
+       } else {
+           $this_app->warn("Cannot update state for $file: $!");
+       }
+    }
 
     %new_ele_hash = $ele->getHash();
     $new_ele = $new_ele_hash{"dispatch"};
@@ -870,6 +916,10 @@ sub compare_profiles() {
 	}
 
 	if( !is_active( $new_cfg, $old_hash{$key}->getPath() ) ) {
+          if ($this_app->option('state')) {
+            my $file = $this_app->option('state') . '/' . $key;
+            unlink($file) or $this_app->warn("Cannot remove state $file: $!");
+          }
 	  $this_app->debug(2, "component $key is NOT active, skipping");
 	  next;
 	} else {
@@ -916,6 +966,9 @@ sub launch_ncd($) {
   $cmd = '@QTTR_SBIN@/ncm-ncd --configure ' . $components;
 
   # ncd options
+  if( $this_app->option('state') ) {
+    $cmd .= " --state " . $this_app->option('state');
+  }
   if( $this_app->option('ncd-retries') ) {
     $cmd .= " --retries " . $this_app->option('ncd-retries');
   }

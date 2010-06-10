@@ -6,7 +6,7 @@ COMP=ncm-cdispd
 
 NAME=$(COMP)
 DESCR=ncm-cdispd is the Configuration Dispatch Daemon
-VERSION=1.1.14
+VERSION=1.2.0
 RELEASE=1
 
 AUTHOR=Rafael A. Garcia Leiva
@@ -18,4 +18,7 @@ TESTVARS=
 
 LOCKFILE=$(QTTR_LOCKD)/ncm-cdispd
 
-DATE=12/01/09 17:12
+
+TARFILE=ncm-cdispd-1.1.14.src.tgz
+PROD=\#
+DATE=10/06/10 15:49
