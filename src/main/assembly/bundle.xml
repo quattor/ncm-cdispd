@@ -1,0 +1,60 @@
+<assembly>
+  <id>bundle</id>
+  
+  <includeBaseDirectory>false</includeBaseDirectory>
+  
+  <formats>
+    <format>zip</format>
+    <format>tar.gz</format>
+  </formats>
+  
+  <fileSets>
+
+    <fileSet>
+      <outputDirectory>sbin</outputDirectory>
+      <directory>target/output/</directory>
+      <includes>
+	<include>ncm-cdispd</include>
+      </includes>
+    </fileSet>
+    
+    <fileSet>
+      <outputDirectory>etc</outputDirectory>
+      <directory>target/output</directory>
+      <includes>
+	<include>ncm-cdispd.conf</include>
+	<include>logrotate.d/ncm-cdispd</include>
+	<include>rc.d/init.d/ncm-cdispd</include>
+      </includes>
+    </fileSet>
+    
+    <fileSet>
+      <outputDirectory>man/man1</outputDirectory>
+      <directory>target/output/</directory>
+      <includes>
+	<include>*.1.gz</include>
+      </includes>
+    </fileSet>
+
+    <fileSet>
+      <outputDirectory>share/doc/${artifactId}</outputDirectory>
+      <directory>target/output/</directory>
+      <includes>
+	<include>*.html</include>
+      </includes>
+    </fileSet>
+
+    <fileSet>
+      <outputDirectory>share/doc/${artifactId}</outputDirectory>
+      <directory>${basedir}</directory>
+      <includes>
+	<include>ChangeLog</include>
+	<include>README</include>
+	<include>LICENSE</include>
+	<include>MAINTAINER</include>
+      </includes>
+    </fileSet>
+
+  </fileSets>
+
+</assembly>

@@ -1,0 +1,307 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  
+  <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>org.quattor.ncm</groupId>
+  <artifactId>ncm-cdispd</artifactId>
+  
+  <packaging>rpm</packaging>
+  <version>1.2.1-SNAPSHOT</version>
+  <name>ncm-cdispd</name>
+  <url>http://quattor.org/</url>
+
+  <profiles>
+    <profile>
+      <activation>
+	<file>
+	  <exists>/bin/rpm</exists>
+	</file>
+      </activation>
+      <build>
+	<plugins>
+	  <plugin>
+	    <groupId>org.codehaus.mojo</groupId>
+	    <artifactId>rpm-maven-plugin</artifactId>
+	    <executions>
+	      <execution>
+		<goals>
+		  <goal>rpm</goal>
+		</goals>
+	      </execution>
+	    </executions>
+	  </plugin>
+	</plugins>
+      </build>
+    </profile>
+    
+  </profiles>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+
+	<configuration>
+	  <encoding>UTF-8</encoding>
+	</configuration>
+	
+	<executions>
+	  <execution>
+	    <id>insert-metadata</id>
+	    <phase>process-sources</phase>
+	    <goals>
+	      <goal>copy-resources</goal>
+	    </goals>
+
+	    <configuration>
+	      <delimiters>
+		<delimiter>@</delimiter>
+	      </delimiters>
+	      <outputDirectory>${project.build.directory}/output</outputDirectory>
+	      <resources>
+		<resource>
+		  <directory>src/main/perl</directory>
+		  <filtering>true</filtering>
+		</resource>
+		<resource>
+		  <directory>src/main/config</directory>
+		  <filtering>true</filtering>
+		</resource>
+	      </resources>
+	    </configuration>
+	    
+	  </execution>
+	</executions>
+
+      </plugin>
+
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>exec-maven-plugin</artifactId>
+	<executions>
+
+	  <execution>
+	    <id>pod2man</id>
+	    <phase>compile</phase>
+	    <goals>
+              <goal>exec</goal>
+	    </goals>
+	    <configuration>
+	      <executable>pod2man</executable>
+	      <workingDirectory>${project.build.directory}/output</workingDirectory>
+	      <arguments>
+	        <argument>--section=8</argument>
+		<argument>${artifactId}</argument>
+		<argument>${artifactId}.8</argument>
+	      </arguments>
+	    </configuration>
+          </execution>
+
+	  <execution>
+	    <id>gzip-man</id>
+	    <phase>compile</phase>
+	    <goals>
+              <goal>exec</goal>
+	    </goals>
+	    <configuration>
+	      <executable>gzip</executable>
+	      <workingDirectory>${project.build.directory}/output</workingDirectory>
+	      <arguments>
+		<argument>${project.build.directory}/output/${artifactId}.8</argument>
+	      </arguments>
+	    </configuration>
+          </execution>
+
+	  <execution>
+	    <id>pod2html</id>
+	    <phase>compile</phase>
+	    <goals>
+              <goal>exec</goal>
+	    </goals>
+	    <configuration>
+	      <executable>pod2html</executable>
+	      <workingDirectory>${project.build.directory}/output</workingDirectory>
+	      <arguments>
+		<argument>--infile=${artifactId}</argument>
+		<argument>--outfile=${artifactId}.html</argument>
+	      </arguments>
+	    </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>rpm-maven-plugin</artifactId>
+	<extensions>true</extensions>
+
+	<configuration>
+	  <release>${RELEASE}</release>
+	  <summary>${DESCR}</summary>
+	  <name>${NAME}</name>
+	  <group>Quattor</group>
+	  <packager>Quattor</packager>
+	  <copyright>EU DataGrid License</copyright>
+	  <url>http://quattor.org/</url>
+	  <requires>
+	    <require>perl-CAF</require>
+	    <require>perl-LC</require>
+	    <require>ccm &gt;= 1.1.6</require>
+	  </requires>
+	  <needarch>noarch</needarch>
+	  <description>${DESCR}</description>
+
+ 	  <mappings>
+
+	    <mapping>
+	      <directory>/usr/sbin</directory>
+	      <filemode>755</filemode>
+	      <username>root</username>
+	      <groupname>root</groupname>
+	      <directoryIncluded>false</directoryIncluded>
+	      <sources>
+		<source>
+		  <location>target/output/</location>
+		  <includes>
+		    <include>ncm-cdispd</include>
+		  </includes>
+		</source>
+	      </sources>
+	    </mapping>
+
+	    <mapping>
+	      <directory>/usr/share/man/man1</directory>
+	      <filemode>644</filemode>
+	      <username>root</username>
+	      <groupname>root</groupname>
+	      <documentation>true</documentation>
+	      <directoryIncluded>false</directoryIncluded>
+	      <sources>
+		<source>
+		  <location>target/output/</location>
+		  <includes>
+		    <include>*.8.gz</include>
+		  </includes>
+		</source>
+	      </sources>
+	    </mapping>
+
+	    <mapping>
+	      <directory>/etc</directory>
+	      <filemode>644</filemode>
+	      <username>root</username>
+	      <groupname>root</groupname>
+	      <directoryIncluded>false</directoryIncluded>
+	      <sources>
+		<source>
+		  <location>target/output/</location>
+		  <includes>
+		    <include>ncm-cdispd.conf</include>
+		    <include>logrotate.d/ncm-cdispd</include>
+		  </includes>
+		</source>
+	      </sources>
+	    </mapping>
+
+	    <mapping>
+	      <directory>/etc</directory>
+	      <filemode>755</filemode>
+	      <username>root</username>
+	      <groupname>root</groupname>
+	      <directoryIncluded>false</directoryIncluded>
+	      <sources>
+		<source>
+		  <location>target/output/</location>
+		  <includes>
+		    <include>rc.d/init.d/ncm-cdispd</include>
+		  </includes>
+		</source>
+	      </sources>
+	    </mapping>
+
+	    <mapping>
+	      <directory>/usr/share/doc/${artifactId}-${project.version}</directory>
+	      <filemode>644</filemode>
+	      <username>root</username>
+	      <groupname>root</groupname>
+	      <directoryIncluded>false</directoryIncluded>
+	      <sources>
+		<source>
+		  <location>target/output/</location>
+		  <includes>
+		    <include>**/*.html</include>
+		  </includes>
+		</source>
+		<source>
+		  <location>${basedir}</location>
+		  <includes>
+		    <include>ChangeLog</include>
+		    <include>README</include>
+		    <include>LICENSE</include>
+		    <include>MAINTAINER</include>
+		  </includes>
+		</source>
+	      </sources>
+	    </mapping>
+
+	  </mappings>
+	</configuration>
+      </plugin>
+
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-assembly-plugin</artifactId>
+	<configuration>
+	  <descriptors>
+	    <descriptor>src/main/assembly/bundle.xml</descriptor>
+	  </descriptors>
+	</configuration>
+	
+	<executions>
+	  
+	  <execution>
+	    <id>bundle</id>
+	    <goals>
+	      <goal>single</goal>
+	    </goals>
+	    <phase>package</phase>
+	  </execution>
+	  
+	</executions>
+	
+      </plugin>
+      
+    </plugins>
+  </build>
+
+  <properties>
+    <maven.build.timestamp.format>yyyyMMdd.HHmm.ss</maven.build.timestamp.format>
+    <PERL_EXECUTABLE>/usr/bin/perl</PERL_EXECUTABLE>
+    <DATE>${maven.build.timestamp}</DATE>
+    <NAME>${artifactId}</NAME>
+    <MAINTAINER>Juan Antonio Lopez Perez &lt;Juan.Lopez.Perez@cern.ch&gt;, German Cancio Melia &lt;German.Cancio.Melia@cern.ch&gt;</MAINTAINER>
+    <AUTHOR>Rafael A. Garcia Leiva</AUTHOR>
+    <VERSION>${project.version}</VERSION>
+    <RELEASE>0.${maven.build.timestamp}</RELEASE>
+    <LICENSE>http://www.eu-datagrid.org/license.html</LICENSE>
+
+    <DESCR>ncm-cdispd is the Configuration Dispatch Daemon</DESCR>
+
+    <BUILD_INFO>
+# 
+# ${artifactId}, ${project.version}, ${maven.build.timestamp}
+#
+</BUILD_INFO>
+    <LEGAL>
+#
+# Licensed under the European DataGrid License
+# http://www.eu-datagrid.org/license.html
+#
+</LEGAL>
+
+  </properties>
+
+</project>
