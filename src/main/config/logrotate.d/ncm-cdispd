@@ -1,4 +1,4 @@
-@QTTR_LOG@/@COMP@.log {
+/var/log/ncm-cdispd.log {
     daily
     notifempty
     missingok

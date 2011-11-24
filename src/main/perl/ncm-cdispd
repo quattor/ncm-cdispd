@@ -1,4 +1,4 @@
-#!@PERL_EXECUTABLE@ -w
+#!/usr/bin/perl -w
 
 #
 # cdispd	Configuration Dispatch Daemon
@@ -146,7 +146,7 @@ Use <file> for storing default options.
 =item --logfile <file>
 
 Store and append B<cdispd> logs in <file>. The default is
-@QTTR_LOG@/ncm-cdispd.log
+/var/log/ncm-cdispd.log
 
 =item --D
 
@@ -174,6 +174,10 @@ Print verbose details on operations.
 
 Set the debugging level to <1..5>.
 
+=item --facility <f>
+
+Set the syslog facility to <f> (Eg. local1).
+
 =item --quiet
 
 Becomes a daemon, and suppress application output to standard output
@@ -185,7 +189,7 @@ Becomes a daemon, and suppress application output to standard output
 
 A configuration file can keep site-wide configuration settings. The
 location of the configuration file is defined in the --cfgfile
-option. A default configuration file is found in @QTTR_ETC@/ncm-cdispd.conf.
+option. A default configuration file is found in /etc/ncm-cdispd.conf.
 
 =head1 SIGNAL HANDLING
 
@@ -226,7 +230,7 @@ $Id: ncm-cdispd.cin,v 1.16 2008/05/29 13:41:33 vero Exp $
 BEGIN {
 
     # use perl libs in /usr/lib/perl
-    unshift(@INC, '@QTTR_PERLLIB@');
+    unshift(@INC, '/usr/lib/perl');
     unshift(@INC,'/opt/edg/lib/perl');
 
 }
@@ -286,15 +290,19 @@ sub app_options() {
 
         { NAME    => 'logfile=s',
           HELP    => 'path/filename to use for cdispd logs',
-          DEFAULT => '@QTTR_LOG@/ncm-cdispd.log' },
+          DEFAULT => '/var/log/ncm-cdispd.log' },
 
         { NAME    => 'cfgfile=s',
-	  HELP    => 'configuration file for cdispd defaults',
-	  DEFAULT => '@QTTR_ETC@/ncm-cdispd.conf' },
+	       HELP    => 'configuration file for cdispd defaults',
+	       DEFAULT => '/etc/ncm-cdispd.conf' },
 
         { NAME    => 'noaction',
-	  HELP    => 'do not actually perform operations',
-	  DEFAULT => undef },
+	       HELP    => 'do not actually perform operations',
+	       DEFAULT => undef },
+     
+        { NAME    => 'facility=s',
+            HELP    => 'facility name for syslog',
+            DEFAULT => 'local1' },
 
 	# become a daemon option
 
@@ -333,7 +341,7 @@ sub _initialize {
     #
 
     # external version number
-    $self->{'VERSION'} = '@VERSION@';
+    $self->{'VERSION'} = '1.2.0';
 
     # show setup text
     $self->{'USAGE'} = "Usage: cdispd [options]\n";
@@ -963,7 +971,7 @@ sub launch_ncd($) {
     $components = join(" ", @{$this_app->{ICLIST}});
   }
 
-  $cmd = '@QTTR_SBIN@/ncm-ncd --configure ' . $components;
+  $cmd = '/usr/sbin/ncm-ncd --configure ' . $components;
 
   # ncd options
   if( $this_app->option('state') ) {
@@ -1002,7 +1010,7 @@ sub launch_ncd($) {
 my ($cred, $cm, $path,$error,$last_error);
 
 # minimal Path
-$ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:@QTTR_BIN@:@QTTR_SBIN@";
+$ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/bin:/usr/sbin";
 
 umask(022);
 

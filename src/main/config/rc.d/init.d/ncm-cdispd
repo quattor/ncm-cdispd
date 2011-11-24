@@ -5,9 +5,9 @@
 # chkconfig: 345 30 80
 # description: The Configuration Dispatch Daemon
 
-. @QTTR_INITD@/functions
+. /etc/rc.d/init.d/functions
 
-DISPATCH=@QTTR_SBIN@/ncm-cdispd
+DISPATCH=/usr/sbin/ncm-cdispd
 RETVAL=0
 prog="ncm-cdispd"
 
@@ -15,7 +15,7 @@ start() {
     bash -c "echo -n 'Starting $prog:'"
     daemon "$DISPATCH" -D
     RETVAL=$?
-    [ "$RETVAL" = 0 ] && touch @LOCKFILE@
+    [ "$RETVAL" = 0 ] && touch /var/lock/quattor/ncm-cdispd
     echo
 }
 
@@ -23,7 +23,7 @@ stop() {
     bash -c "echo -n 'Stopping $prog:'"
     killproc $DISPATCH -TERM
     RETVAL=$?
-    [ "$RETVAL" = 0 ] && rm -f @LOCKFILE@
+    [ "$RETVAL" = 0 ] && rm -f /var/lock/quattor/ncm-cdispd
     echo
 }
 
