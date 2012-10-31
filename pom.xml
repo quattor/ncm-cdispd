@@ -98,8 +98,8 @@
 	      <workingDirectory>${project.build.directory}/output</workingDirectory>
 	      <arguments>
 	        <argument>--section=8</argument>
-		<argument>${artifactId}</argument>
-		<argument>${artifactId}.8</argument>
+		<argument>${project.artifactId}</argument>
+		<argument>${project.artifactId}.8</argument>
 	      </arguments>
 	    </configuration>
           </execution>
@@ -114,7 +114,7 @@
 	      <executable>gzip</executable>
 	      <workingDirectory>${project.build.directory}/output</workingDirectory>
 	      <arguments>
-		<argument>${project.build.directory}/output/${artifactId}.8</argument>
+		<argument>${project.build.directory}/output/${project.artifactId}.8</argument>
 	      </arguments>
 	    </configuration>
           </execution>
@@ -129,8 +129,8 @@
 	      <executable>pod2html</executable>
 	      <workingDirectory>${project.build.directory}/output</workingDirectory>
 	      <arguments>
-		<argument>--infile=${artifactId}</argument>
-		<argument>--outfile=${artifactId}.html</argument>
+		<argument>--infile=${project.artifactId}</argument>
+		<argument>--outfile=${project.artifactId}.html</argument>
 	      </arguments>
 	    </configuration>
           </execution>
@@ -227,7 +227,7 @@
 	    </mapping>
 
 	    <mapping>
-	      <directory>/usr/share/doc/${artifactId}-${project.version}</directory>
+	      <directory>/usr/share/doc/${project.artifactId}-${project.version}</directory>
 	      <filemode>644</filemode>
 	      <username>root</username>
 	      <groupname>root</groupname>
@@ -285,7 +285,7 @@
     <maven.build.timestamp.format>yyyyMMdd.HHmm.ss</maven.build.timestamp.format>
     <PERL_EXECUTABLE>/usr/bin/perl</PERL_EXECUTABLE>
     <DATE>${maven.build.timestamp}</DATE>
-    <NAME>${artifactId}</NAME>
+    <NAME>${project.artifactId}</NAME>
     <MAINTAINER>Juan Antonio Lopez Perez &lt;Juan.Lopez.Perez@cern.ch&gt;, German Cancio Melia &lt;German.Cancio.Melia@cern.ch&gt;</MAINTAINER>
     <AUTHOR>Rafael A. Garcia Leiva</AUTHOR>
     <VERSION>${project.version}</VERSION>
@@ -295,8 +295,8 @@
     <DESCR>ncm-cdispd is the Configuration Dispatch Daemon</DESCR>
 
     <BUILD_INFO>
-# 
-# ${artifactId}, ${project.version}, ${maven.build.timestamp}
+#
+# ${project.artifactId}, ${project.version}, ${maven.build.timestamp}
 #
 </BUILD_INFO>
     <LEGAL>

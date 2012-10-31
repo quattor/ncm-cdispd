@@ -37,7 +37,7 @@
     </fileSet>
 
     <fileSet>
-      <outputDirectory>share/doc/${artifactId}</outputDirectory>
+      <outputDirectory>share/doc/${project.artifactId}</outputDirectory>
       <directory>target/output/</directory>
       <includes>
 	<include>*.html</include>
@@ -45,7 +45,7 @@
     </fileSet>
 
     <fileSet>
-      <outputDirectory>share/doc/${artifactId}</outputDirectory>
+      <outputDirectory>share/doc/${project.artifactId}</outputDirectory>
       <directory>${basedir}</directory>
       <includes>
 	<include>ChangeLog</include>
