@@ -33,7 +33,7 @@
 	</plugins>
       </build>
     </profile>
-    
+
   </profiles>
 
   <build>
@@ -46,7 +46,7 @@
 	<configuration>
 	  <encoding>UTF-8</encoding>
 	</configuration>
-	
+
 	<executions>
 	  <execution>
 	    <id>insert-metadata</id>
@@ -71,7 +71,7 @@
 		</resource>
 	      </resources>
 	    </configuration>
-	    
+
 	  </execution>
 	</executions>
 
@@ -109,6 +109,7 @@
 	      <executable>gzip</executable>
 	      <workingDirectory>${project.build.directory}/output</workingDirectory>
 	      <arguments>
+		<argument>-f</argument>
 		<argument>${project.build.directory}/output/${project.artifactId}.8</argument>
 	      </arguments>
 	    </configuration>
@@ -258,9 +259,9 @@
 	    <descriptor>src/main/assembly/bundle.xml</descriptor>
 	  </descriptors>
 	</configuration>
-	
+
 	<executions>
-	  
+
 	  <execution>
 	    <id>bundle</id>
 	    <goals>
@@ -268,11 +269,11 @@
 	    </goals>
 	    <phase>package</phase>
 	  </execution>
-	  
+
 	</executions>
-	
+
       </plugin>
-      
+
     </plugins>
   </build>
 
