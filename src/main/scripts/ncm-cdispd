@@ -341,7 +341,7 @@ sub _initialize {
     #
 
     # external version number
-    $self->{'VERSION'} = '1.2.0';
+    $self->{'VERSION'} = '${project.artifactId}';
 
     # show setup text
     $self->{'USAGE'} = "Usage: cdispd [options]\n";
