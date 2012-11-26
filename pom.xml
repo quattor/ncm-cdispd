@@ -174,10 +174,10 @@
 	    </mappings>
 	    <postinstallScriptlet>
 	      <script>
-		if [ "$1" eq 1 ]
+		if [ "$1" -eq 1 ]
 		then
 	            /sbin/chkconfig --add ${project.artifactId}
-		elif [ "$1" eq 2 ]
+		elif [ "$1" -eq 2 ]
 		then
 		    /sbin/service ncm-cdispd restart &amp;>/dev/null
 		fi
@@ -185,7 +185,7 @@
 	    </postinstallScriptlet>
 	    <preuninstallScriptlet>
 	      <script>
-		if [ "$1" eq 0 ]
+		if [ "$1" -eq 0 ]
 		then
 		    /sbin/chkconfig --del ${project.artifactId}
 		fi
