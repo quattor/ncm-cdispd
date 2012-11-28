@@ -175,14 +175,14 @@
 	    <postinstallScriptlet>
 	      <script>
 	        /sbin/chkconfig --add ${project.artifactId}
-	        /sbin/service ncm-cdispd restart
+	        /sbin/service ${project.artifactId} restart
 	      </script>
 	    </postinstallScriptlet>
 	    <preuninstallScriptlet>
 	      <script>
 		if [ "$1" -eq 0 ]  # Uninstall rather than upgrade
 		then
-	            /sbin/service ncm-cdispd stop
+                    # Do not stop the service as the uninstall may happen from within the service...
 		    /sbin/chkconfig --del ${project.artifactId}
 		fi
 	      </script>
