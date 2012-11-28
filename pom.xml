@@ -174,19 +174,15 @@
 	    </mappings>
 	    <postinstallScriptlet>
 	      <script>
-		if [ "$1" -eq 1 ]
-		then
-	            /sbin/chkconfig --add ${project.artifactId}
-		elif [ "$1" -eq 2 ]
-		then
-		    /sbin/service ncm-cdispd restart &amp;>/dev/null
-		fi
+	        /sbin/chkconfig --add ${project.artifactId}
+	        /sbin/service ncm-cdispd restart
 	      </script>
 	    </postinstallScriptlet>
 	    <preuninstallScriptlet>
 	      <script>
-		if [ "$1" -eq 0 ]
+		if [ "$1" -eq 0 ]  # Uninstall rather than upgrade
 		then
+	            /sbin/service ncm-cdispd stop
 		    /sbin/chkconfig --del ${project.artifactId}
 		fi
 	      </script>
