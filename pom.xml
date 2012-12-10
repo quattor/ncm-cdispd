@@ -178,7 +178,7 @@
 	        /sbin/service ${project.artifactId} restart
 	      </script>
 	    </postinstallScriptlet>
-	    <preuninstallScriptlet>
+	    <preremoveScriptlet>
 	      <script>
 		if [ "$1" -eq 0 ]  # Uninstall rather than upgrade
 		then
@@ -186,7 +186,7 @@
 		    /sbin/chkconfig --del ${project.artifactId}
 		fi
 	      </script>
-	    </preuninstallScriptlet>
+	    </preremoveScriptlet>
 	  </configuration>
 	</plugin>
       </plugins>
