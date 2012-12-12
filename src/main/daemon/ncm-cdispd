@@ -9,6 +9,8 @@
 
 DISPATCH=/usr/sbin/ncm-cdispd
 RETVAL=0
+PIDFILE=/var/run/ncm-cdispd.pid
+LOCKFILE=/var/lock/quattor/ncm-cdispd
 prog="ncm-cdispd"
 
 start() {
@@ -23,7 +25,11 @@ stop() {
     bash -c "echo -n 'Stopping $prog:'"
     killproc $DISPATCH -TERM
     RETVAL=$?
-    [ "$RETVAL" = 0 ] && rm -f /var/lock/quattor/ncm-cdispd
+    if [ "$RETVAL" = 0 ]
+    then
+        rm -f $LOCKFILE
+        rm -f $PIDFILE
+    fi
     echo
 }
 
