@@ -4,3 +4,11 @@
     missingok
     copytruncate
 }
+
+/var/log/check-ncm-cdispd.cron.log {
+    weekly
+    notifempty
+    missingok
+    copytruncate
+}
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+service=/sbin/service
+daemon=ncm-cdispd
+
+#echo Checking $daemon status...
+${service} $daemon status > /dev/null
+status=$?
+if [ $status -eq 2 -o $status -eq 1 ]         # Daemon is dead
+then
+  echo "Restarting $daemon..."
+  ${service} $daemon start
+elif [ $status -eq 3 ]
+then
+  echo "Daemon $daemon has been intentionally stopped. Not restarted."
+elif [ $status -ne 0 ]
+then
+  echo "$0: internal error during daemon $daemon check ($service returned unhandled status $status)"
+fi
+

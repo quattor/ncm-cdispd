@@ -1,0 +1,4 @@
+#  cron to check if ncm-cdispd daemon is alive and restart it if needed
+#
+* */1 * * * root (date --iso-8601=seconds; PATH=/sbin:/bin:/usr/sbin:/usr/bin; /usr/quattor/scripts/check-ncm-cdispd) >> /var/log/check-ncm-cdispd.cron.log 2>&1
+
