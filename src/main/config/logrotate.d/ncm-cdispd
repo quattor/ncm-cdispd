@@ -1,11 +1,11 @@
-/var/log/ncm-cdispd.log {
+/var/log/${project.artifactId}.log {
     daily
     notifempty
     missingok
     copytruncate
 }
 
-/var/log/check-ncm-cdispd.cron.log {
+/var/log/check-${project.artifactId}.cron.log {
     weekly
     notifempty
     missingok

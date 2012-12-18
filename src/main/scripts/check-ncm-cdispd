@@ -1,7 +1,7 @@
 #!/bin/bash
 
 service=/sbin/service
-daemon=ncm-cdispd
+daemon=${project.artifactId}
 
 #echo Checking $daemon status...
 ${service} $daemon status > /dev/null
