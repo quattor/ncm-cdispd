@@ -2,7 +2,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.quattor.cfg.module</groupId>
+  <groupId>org.quattor.daemon</groupId>
   <artifactId>ncm-cdispd</artifactId>
 
   <packaging>pom</packaging>
