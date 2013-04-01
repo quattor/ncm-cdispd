@@ -194,6 +194,8 @@
 	    <postinstallScriptlet>
 	      <script>
 	        /sbin/chkconfig --add ${project.artifactId}
+                # Ensure that profile has been updated to the last format, if any change, to prevent potential ncm-cdispd crash at restart
+                ccm-fetch --force
 	        /sbin/service ${project.artifactId} restart
 	      </script>
 	    </postinstallScriptlet>

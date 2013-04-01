@@ -17,7 +17,9 @@ start() {
     bash -c "echo -n 'Starting $prog:'"
     daemon "$DISPATCH" -D
     RETVAL=$?
-    [ "$RETVAL" = 0 ] && touch /var/lock/quattor/ncm-cdispd
+    # Mark the attempt to start the daemon, even if not successful.
+    # This will allow the monitoring cron job to attempt to restart it
+    touch /var/lock/quattor/ncm-cdispd
     echo
 }
 

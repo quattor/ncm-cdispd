@@ -9,6 +9,8 @@ status=$?
 if [ $status -eq 2 -o $status -eq 1 ]         # Daemon is dead
 then
   echo "Restarting $daemon..."
+  # First ensure that we have a good profile in the expected format in case of a problem before
+  ccm-fetch --force
   ${service} $daemon start
 elif [ $status -eq 3 ]
 then
