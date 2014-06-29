@@ -243,6 +243,7 @@ package cdispd;
 
 use CAF::Application;
 use CAF::Reporter;
+use CAF::Process;
 use LC::Exception qw (SUCCESS throw_error);
 
 use strict;
@@ -565,6 +566,7 @@ sub init_components() {
       # in subsequent runs it will behave correctly.
       clean_ICList() unless ($error);
     } else {
+      $error = 1;
       $this_app->error("Path $path is not defined, no components to configure!!!");
     }
 
@@ -574,7 +576,7 @@ sub init_components() {
     $this_app->{OLD_CKSUM} = $this_app->{OLD_ELE}->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
-    return SUCCESS;
+    return $error;
 
 }
 
@@ -957,7 +959,8 @@ sub compare_profiles() {
 sub launch_ncd($) {
   my $all=shift;
 
-  my($components, $cmd, $result);
+  my($components, $cmd);
+  my $result = 0;    # Assume success
 
   if( !defined($this_app->{ICLIST}) ||
       !scalar (@{$this_app->{ICLIST}})) {
@@ -989,12 +992,19 @@ sub launch_ncd($) {
 
   if( $this_app->option('noaction') ) {
     $this_app->info("would run (noaction mode): ".$cmd);
-    $result = 0;
   } else {
     $this_app->info("about to run: ".$cmd);
-    my @out=`$cmd 2>&1`;
-    $this_app->info(@out);
-    $this_app->info ("ncm-ncd finished with status: $?");
+    my @cmd_array = split /\s+/, $cmd;
+    my $verb = $cmd_array[0];
+    if ( ! -x $verb ) {
+      $this_app->error("Command $verb not found");
+      exit(2);
+    } 
+    my $errormsg = CAF::Process->new(\@cmd_array,log=>$this_app)->output();
+    my $status = $? >> 8;
+    $this_app->info($errormsg);
+    $this_app->info ("ncm-ncd finished with status: $status");
+    $result = 1 if $status;
   }
   return $result;
 }
@@ -1060,11 +1070,10 @@ $this_app->info('Dry run, no changes will be performed (--noaction flag set)')
   if ($this_app->option('noaction'));
 
 $this_app->info( "initalization of components");
-init_components();
+$last_error = init_components();
+$this_app->debug(1,"Initializing \$last_error to init_components status ($last_error)");
 
 # wait for a new configuration profile
-
-$last_error=0; # start clean
 
 while(1) {
 
@@ -1095,7 +1104,7 @@ while(1) {
     if ($this_app->{OLD_CFID}  ne $this_app->{NEW_CFID}) {
       $this_app->verbose("new profile detected: cid=".$this_app->{NEW_CFID});
       if( ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) ||
-	$last_error==1) {
+	  ($last_error == 1) ) {
 	if ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) {
 	  $this_app->info("new (and changed) profile detected");
 	} else {
@@ -1105,14 +1114,17 @@ while(1) {
 	clean_ICList();
 	compare_profiles();
         $error=launch_ncd($last_error);
+        $this_app->debug(1,"launch_ncd() exit status = $error");
 	unless ($error) {
-	  # neither forgotten nor forgiven:
-	  # keep old pivot configuration if ncm-ncd execution reported errors.
+          $this_app->debug(1,"ncm-ncd executed successfully: update pivot");
 	  $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
 	  $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
 	  $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
 	  $last_error=0;
 	} else {
+	  # neither forgotten nor forgiven:
+	  # keep old pivot configuration if ncm-ncd execution reported errors.
+          $this_app->debug(1,"ncm-ncd reported errors: do not update pivot");
 	  $last_error=1;
 	}
 
