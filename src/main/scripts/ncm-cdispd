@@ -56,16 +56,16 @@ In order to ensure consistency, the following rules apply:
 
 =item *
 
-If NCM execution (ncm-ncd) fails, cdispd will not increase the
-current profile pivot. This means that subsequent profile changes will
+If NCM execution (ncm-ncd) fails, cdispd will not update the reference
+configuration. This means that subsequent profile changes will
 be compared to the profile as it was when NCM failed. In such a way,
 failed components are not "forgotten" about (unless they are
 deactivated in the new profile).
 
 =item *
 
-In the particular case that the last NCM run reported errors (so the
-pivot was not increased) AND no NCM relevant changes between the pivot
+In the particular case that the last NCM run reported errors 
+AND no NCM relevant changes between the reference configuration
 and a new profile are detected, ncm-ncd is invoked for all active
 components.
 
@@ -956,7 +956,9 @@ sub compare_profiles() {
 # run for all active components if $allifnone is defined and not equal 0 AND
 # there were no components in ICLIST to run.
 #
-sub launch_ncd($) {
+# Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
+#
+sub launch_ncd() {
   my $all=shift;
 
   my($components, $cmd);
@@ -996,15 +998,15 @@ sub launch_ncd($) {
     $this_app->info("about to run: ".$cmd);
     my @cmd_array = split /\s+/, $cmd;
     my $verb = $cmd_array[0];
-    if ( ! -x $verb ) {
-      $this_app->error("Command $verb not found");
-      exit(2);
+    if ( -x $verb ) {
+        my $errormsg = CAF::Process->new(\@cmd_array,log=>$this_app)->output();
+        $result = $? >> 8;
+        $this_app->info($errormsg);
+        $this_app->info ("ncm-ncd finished with status: $result");
+    } else {
+        $this_app->error("Command $verb not found");
+        $result = 1;
     } 
-    my $errormsg = CAF::Process->new(\@cmd_array,log=>$this_app)->output();
-    my $status = $? >> 8;
-    $this_app->info($errormsg);
-    $this_app->info ("ncm-ncd finished with status: $status");
-    $result = 1 if $status;
   }
   return $result;
 }
@@ -1017,7 +1019,7 @@ sub launch_ncd($) {
 # cdispd main() algorithm
 #
 
-my ($cred, $cm, $path,$error,$last_error);
+my ($cred, $cm, $path,$last_ncd_status);
 
 # minimal Path
 $ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/bin:/usr/sbin";
@@ -1070,8 +1072,10 @@ $this_app->info('Dry run, no changes will be performed (--noaction flag set)')
   if ($this_app->option('noaction'));
 
 $this_app->info( "initalization of components");
-$last_error = init_components();
-$this_app->debug(1,"Initializing \$last_error to init_components status ($last_error)");
+$last_ncd_status = init_components();
+$this_app->debug(1,"Initializing \$last_ncd_status to init_components status ($last_ncd_status)");
+my $ref_cid = $this_app->{OLD_CFID};
+$this_app->debug(1,"CID of reference configuration set to $ref_cid");
 
 # wait for a new configuration profile
 
@@ -1082,7 +1086,7 @@ while(1) {
     $SIG{'HUP'}  = 'IGNORE';
 
     $this_app->debug(1,"checking for new profiles ...");
-    $this_app->debug(3,"current pivot cid=".$this_app->{OLD_CFID});
+    $this_app->debug(3,"CID of last profile processed: ".$this_app->{OLD_CFID});
 
     while ($cm->getCurrentCid() == $this_app->{OLD_CFID}) {
       $this_app->verbose('no new profile found, sleeping');
@@ -1098,34 +1102,35 @@ while(1) {
     $this_app->debug(3,"new profile cid=".$this_app->{NEW_CFID});
 
     # check if the profile is different
-    $error=0;
+    my $ncd_status=0;
     $this_app->debug(3,"old profile checksum: ".$this_app->{OLD_CKSUM});
     $this_app->debug(3,"new profile checksum: ".$this_app->{NEW_CKSUM});
     if ($this_app->{OLD_CFID}  ne $this_app->{NEW_CFID}) {
       $this_app->verbose("new profile detected: cid=".$this_app->{NEW_CFID});
       if( ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) ||
-	  ($last_error == 1) ) {
+	  ($last_ncd_status != 0) ) {
 	if ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) {
 	  $this_app->info("new (and changed) profile detected");
+	  clean_ICList();
 	} else {
-	  $this_app->info("new profile without changed checksum,");
-	  $this_app->info("re-running ncm-ncd since last execution reported errors");
+	  $this_app->info("new profile identical but re-running ncm-ncd since last execution reported errors");
 	}
-	clean_ICList();
+        # Not really needed when re-running after a previous run error (as ICList is not cleared) but harmless
 	compare_profiles();
-        $error=launch_ncd($last_error);
-        $this_app->debug(1,"launch_ncd() exit status = $error");
-	unless ($error) {
-          $this_app->debug(1,"ncm-ncd executed successfully: update pivot");
+        $ncd_status=launch_ncd();
+        $this_app->debug(1,"launch_ncd() exit status = $ncd_status");
+	unless ($ncd_status) {
+          $ref_cid = $this_app->{NEW_CFID};
+          $this_app->debug(1,"ncm-ncd executed successfully: update base configuration to CID $ref_cid");
 	  $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
 	  $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
 	  $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
-	  $last_error=0;
+	  $last_ncd_status=0;
 	} else {
 	  # neither forgotten nor forgiven:
-	  # keep old pivot configuration if ncm-ncd execution reported errors.
-          $this_app->debug(1,"ncm-ncd reported errors: do not update pivot");
-	  $last_error=1;
+	  # do not update reference configuration if ncm-ncd execution reported errors.
+          $this_app->debug(1,"ncm-ncd reported errors: base configuration kept at CID $ref_cid");
+	  $last_ncd_status=$ncd_status;
 	}
 
       } else {
