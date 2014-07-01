@@ -1106,38 +1106,38 @@ while(1) {
     $this_app->debug(3,"old profile checksum: ".$this_app->{OLD_CKSUM});
     $this_app->debug(3,"new profile checksum: ".$this_app->{NEW_CKSUM});
     if ($this_app->{OLD_CFID}  ne $this_app->{NEW_CFID}) {
-      $this_app->verbose("new profile detected: cid=".$this_app->{NEW_CFID});
-      if( ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) ||
-	  ($last_ncd_status != 0) ) {
-	if ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) {
-	  $this_app->info("new (and changed) profile detected");
-	  clean_ICList();
-	} else {
-	  $this_app->info("new profile identical but re-running ncm-ncd since last execution reported errors");
-	}
-        # Not really needed when re-running after a previous run error (as ICList is not cleared) but harmless
-	compare_profiles();
-        $ncd_status=launch_ncd();
-        $this_app->debug(1,"launch_ncd() exit status = $ncd_status");
-	unless ($ncd_status) {
-          $ref_cid = $this_app->{NEW_CFID};
-          $this_app->debug(1,"ncm-ncd executed successfully: update base configuration to CID $ref_cid");
-	  $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
-	  $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
-	  $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
-	  $last_ncd_status=0;
-	} else {
-	  # neither forgotten nor forgiven:
-	  # do not update reference configuration if ncm-ncd execution reported errors.
-          $this_app->debug(1,"ncm-ncd reported errors: base configuration kept at CID $ref_cid");
-	  $last_ncd_status=$ncd_status;
-	}
+        $this_app->verbose("new profile detected: cid=".$this_app->{NEW_CFID});
+        if( ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) ||
+            ($last_ncd_status != 0) ) {
+            if ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) {
+                $this_app->info("new (and changed) profile detected");
+                clean_ICList();
+            } else {
+                $this_app->info("new profile identical but re-running ncm-ncd since last execution reported errors");
+            }
+            # Not really needed when re-running after a previous run error (as ICList is not cleared) but harmless
+            compare_profiles();
+            $ncd_status=launch_ncd();
+            $this_app->debug(1,"launch_ncd() exit status = $ncd_status");
+            unless ($ncd_status) {
+                $ref_cid = $this_app->{NEW_CFID};
+                $this_app->debug(1,"ncm-ncd executed successfully: update base configuration to CID $ref_cid");
+                $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
+                $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
+                $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
+                $last_ncd_status=0;
+            } else {
+                # neither forgotten nor forgiven:
+                # do not update reference configuration if ncm-ncd execution reported errors.
+                $this_app->debug(1,"ncm-ncd reported errors: base configuration kept at CID $ref_cid");
+                $last_ncd_status=$ncd_status;
+           }
 
-      } else {
-	$this_app->info("new profile has same checksum as old one, no NCM run");
-      }
+        } else {
+            $this_app->info("new profile has same checksum as old one, no NCM run");
+        }
     } else {
-      $this_app->verbose("no new profile found");
+        $this_app->verbose("no new profile found");
     }
 
     $this_app->{OLD_CFID}  = $this_app->{NEW_CFID};
