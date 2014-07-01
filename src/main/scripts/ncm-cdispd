@@ -955,45 +955,44 @@ sub compare_profiles() {
 sub launch_ncd() {
   my $all=shift;
 
-  my($components, $cmd);
+  my$components;
   my $result = 0;    # Assume success
 
+  my @cmd = ('/usr/sbin/ncm-ncd', '--configure');
   if( !defined($this_app->{ICLIST}) ||
       !scalar (@{$this_app->{ICLIST}})) {
     unless ($all) {
       $this_app->info("no components to be run by NCM - ncm-ncd won't be called");
       return (0);
     } else {
-      $components = '--all';
+      push @cmd, '--all';
     }
   } else {
-    $components = join(" ", @{$this_app->{ICLIST}});
+    push @cmd, @{$this_app->{ICLIST}};
   }
-
-  $cmd = '/usr/sbin/ncm-ncd --configure ' . $components;
 
   # ncd options
   if( $this_app->option('state') ) {
-    $cmd .= " --state " . $this_app->option('state');
+    push @cmd, "--state", $this_app->option('state');
   }
   if( $this_app->option('ncd-retries') ) {
-    $cmd .= " --retries " . $this_app->option('ncd-retries');
+    push @cmd, "--retries", $this_app->option('ncd-retries');
   }
   if( $this_app->option('ncd-timeout') ) {
-    $cmd .= " --timeout " . $this_app->option('ncd-timeout');
+    push @cmd, "--timeout", $this_app->option('ncd-timeout');
   }
   if( $this_app->option('ncd-useprofile') ) {
-    $cmd .= " --useprofile " . $this_app->option('ncd-useprofile');
+    push @cmd, "--useprofile", $this_app->option('ncd-useprofile');
   }
 
+  my $cmd_line=join(" ",@cmd);
   if( $this_app->option('noaction') ) {
-    $this_app->info("would run (noaction mode): ".$cmd);
+    $this_app->info("would run (noaction mode): ".$cmd_line);
   } else {
-    $this_app->info("about to run: ".$cmd);
-    my @cmd_array = split /\s+/, $cmd;
-    my $verb = $cmd_array[0];
+    $this_app->info("about to run: ".$cmd_line);
+    my $verb = $cmd[0];
     if ( -x $verb ) {
-        my $errormsg = CAF::Process->new(\@cmd_array,log=>$this_app)->output();
+        my $errormsg = CAF::Process->new(\@cmd, log=>$this_app)->output();
         $result = $? >> 8;
         $this_app->info($errormsg);
         $this_app->info ("ncm-ncd finished with status: $result");
