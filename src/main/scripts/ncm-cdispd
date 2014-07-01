@@ -559,12 +559,6 @@ sub init_components() {
 	}
       }
       $error=launch_ncd();
-      # this is not perfect and could be improved. In the first run
-      # (and only in the first run), a component may fail which is
-      # then executed in the second run even if the component is
-      # deactivated in the profile (as IC list is not reset). However,
-      # in subsequent runs it will behave correctly.
-      clean_ICList() unless ($error);
     } else {
       $error = 1;
       $this_app->error("Path $path is not defined, no components to configure!!!");
@@ -1111,6 +1105,11 @@ while(1) {
             ($last_ncd_status != 0) ) {
             if ($this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM}) {
                 $this_app->info("new (and changed) profile detected");
+                # This is not perfect and could be improved. In the first run
+                # (and only in the first run), a component may fail which is
+                # then executed in the second run even if the component is
+                # deactivated in the profile (as IC list is not reset). However,
+                # in subsequent runs it will behave correctly.
                 clean_ICList();
             } else {
                 $this_app->info("new profile identical but re-running ncm-ncd since last execution reported errors");
