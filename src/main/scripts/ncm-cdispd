@@ -1145,9 +1145,6 @@ while(1) {
     # now we can signal to restart the daemon
     $SIG{'HUP'}  = \&signal_restart;
 
-    $this_app->debug(1,"sleep for ".$this_app->option('interval')." seconds");
-    sleep($this_app->option('interval'));
-
 }
 
 exit(0);
