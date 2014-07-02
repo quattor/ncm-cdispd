@@ -1,4 +1,12 @@
 #!/bin/bash
+#
+# cdispd        Configuration Dispatch Daemon
+#
+# Copyright (c) 2003 EU DataGrid.
+# For license conditions see http://www.eu-datagrid.org/license.html
+#
+# ${developer-info}
+# ${author-info}
 
 service=/sbin/service
 daemon=${project.artifactId}
