@@ -1005,12 +1005,10 @@ sub compare_profiles() {
 }
 
 #
-# launch_ncd($allifnone)
+# launch_ncd()
 #
-# Launch the 'ncd' program, whith the ncd arguments passed
-# to cdispd, and with the contents of @ICList
-# run for all active components if $allifnone is defined and not equal 0 AND
-# there were no components in ICLIST to run.
+# Launch the 'ncd' program, with the ncd arguments passed
+# to cdispd, and with the contents of @ICList as the component list.
 #
 # Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
 #
@@ -1021,17 +1019,7 @@ sub launch_ncd() {
     my $result = 0;    # Assume success
 
     my @cmd = ( '/usr/sbin/ncm-ncd', '--configure' );
-    if (   !defined( $this_app->{ICLIST} )
-        || !scalar( @{ $this_app->{ICLIST} } ) )
-    {
-        unless ($all) {
-            $this_app->info(
-                "no components to be run by NCM - ncm-ncd won't be called");
-            return (0);
-        } else {
-            push @cmd, '--all';
-        }
-    } else {
+    if (   defined( $this_app->{ICLIST} ) && scalar(@{$this_app->{ICLIST}}) ) {
         # At this point, ICLIST should contain only components present in the last profile received.
         # The only case where a component may be in the list without being part of the configuration 
         # is the following:
@@ -1042,6 +1030,9 @@ sub launch_ncd() {
         # As a result, X remains on the list of component to run. This should be harmless as ncm-ncd will ignore it.
         # This is probably rare enough to avoid complex processing to handle this in ncm-dispd.
         push @cmd, @{ $this_app->{ICLIST} };
+    } else {
+        $this_app->info("no components to be run by NCM - ncm-ncd won't be called");
+        return (0);
     }
 
     # ncd options
