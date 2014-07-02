@@ -1032,6 +1032,15 @@ sub launch_ncd() {
             push @cmd, '--all';
         }
     } else {
+        # At this point, ICLIST should contain only components present in the last profile received.
+        # The only case where a component may be in the list without being part of the configuration 
+        # is the following:
+        #   - Profile n is deployed succesfully (ncm-ncd returns a success)
+        #   - Profile n+1 add a new component X that fails (reference config to compare next profile with remains n)
+        #   - Profile n+2 remove component X but the profile comparison occurs between n and n+2 (because
+        #     X failed with profile N+1) and thus X removal is not detected.
+        # As a result, X remains on the list of component to run. This should be harmless as ncm-ncd will ignore it.
+        # This is probably rare enough to avoid complex processing to handle this in ncm-dispd.
         push @cmd, @{ $this_app->{ICLIST} };
     }
 
