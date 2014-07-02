@@ -479,8 +479,7 @@ sub exception_handler {
     $this_app->error( $e->text );
     if ( $this_app->option('debug') ) {
         $e->throw;
-    }
-    else {
+    } else {
         $e->has_been_reported(1);
     }
     $this_app->error("exiting ncm-cdispd...");
@@ -597,8 +596,7 @@ sub init_components() {
     }
     else {
         $error = 1;
-        $this_app->error(
-            "Path $path is not defined, no components to configure!!!");
+        $this_app->error("Path $path is not defined, no components to configure!!!");
     }
 
     # current configuration profile is this one
@@ -660,8 +658,7 @@ sub add_component($) {
         my $file = $this_app->option('state') . '/' . $comp;
         if ( open( TOUCH, ">$file" ) ) {
             close(TOUCH);
-        }
-        else {
+        } else {
             $this_app->warn("Cannot update state for $file: $!");
         }
     }
@@ -669,8 +666,7 @@ sub add_component($) {
     %new_ele_hash = $ele->getHash();
     $new_ele      = $new_ele_hash{"dispatch"};
     if ( !defined($new_ele) ) {
-        $this_app->info(
-            "No dispatch flag defined for component $comp, not added to list");
+        $this_app->info("No dispatch flag defined for component $comp, not added to list");
         return (0);
     }
 
@@ -679,17 +675,14 @@ sub add_component($) {
 
     if ( $disp eq "true" ) {
         unless ( grep $comp eq $_, @{ $this_app->{ICLIST} } ) {
-            $this_app->report(
-                "component $comp, marked to dispatch, added to list");
+            $this_app->report("component $comp, marked to dispatch, added to list");
             push( @{ $this_app->{ICLIST} }, $comp );
         }
         else {
             $this_app->report("component $comp already in list");
         }
-    }
-    else {
-        $this_app->debug( 3,
-            "component $comp, marked to not dispatch, NOT added to list" );
+    } else {
+        $this_app->debug( 3, "component $comp, marked to not dispatch, NOT added to list" );
     }
 
     return SUCCESS;
@@ -739,17 +732,14 @@ sub changed_status($$$) {
               . $name
               . " has changed status from NOT active to active" );
         return (1);
-    }
-    elsif ( $old_act eq "true" and $new_act eq "false" ) {
+    } elsif ( $old_act eq "true" and $new_act eq "false" ) {
         $this_app->debug( 3,
                 "component " 
               . $name
               . " has changed status from active to NOT active" );
         return (0);    # do not invoke it if it becomes not active!
-    }
-    else {
-        $this_app->debug( 3,
-            "component " . $name . " has not changed its status" );
+    } else {
+        $this_app->debug( 3, "component " . $name . " has not changed its status" );
     }
 
     return (0);
@@ -937,13 +927,12 @@ sub compare_profiles() {
 
     $path = "/software/components";
 
-# does the path exist at all - avoid crash cdispd in weird configuration situations
-# this should never happen of course...
+    # does the path exist at all - avoid crash cdispd in weird configuration 
+    # situations this should never happen of course...
     if ( $old_cfg->elementExists($path) ) {
         $old_ele  = $old_cfg->getElement($path);
         %old_hash = $old_ele->getHash();
-    }
-    else {
+    } else {
         $old_ele  = undef;
         %old_hash = ();
     }
@@ -951,8 +940,7 @@ sub compare_profiles() {
     if ( $new_cfg->elementExists($path) ) {
         $new_ele  = $new_cfg->getElement($path);
         %new_hash = $new_ele->getHash();
-    }
-    else {
+    } else {
         $this_app->error("new configuration has no $path path defined!!");
         $new_ele  = undef;
         %new_hash = ();
@@ -981,10 +969,9 @@ sub compare_profiles() {
 
         next if ( !exists( $new_hash{$key} ) );
 
-        if ( changed_status( $old_cfg, $new_cfg, $old_hash{$key}->getPath() ) )
-        {
-            if ( is_active( $new_cfg, $old_hash{$key}->getPath() ) )
-            {    # only add if active
+        if ( changed_status( $old_cfg, $new_cfg, $old_hash{$key}->getPath() ) ) {
+            # Only add if active
+            if ( is_active( $new_cfg, $old_hash{$key}->getPath() ) ) {
                 $this_app->debug( 2, "component $key: status changed" );
                 add_component( $new_hash{$key} );
             }
@@ -999,16 +986,14 @@ sub compare_profiles() {
             }
             $this_app->debug( 2, "component $key is NOT active, skipping" );
             next;
-        }
-        else {
+        } else {
             $this_app->debug( 2, "component $key is active checking CPE" );
         }
 
         if ( changed_CPE( $old_cfg, $new_cfg, $old_hash{$key}->getPath() ) ) {
             $this_app->debug( 2, "component $key: CPE changed" );
             add_component( $new_hash{$key} );
-        }
-        else {
+        } else {
             $this_app->debug( 2, "component $key has not changed its CPE" );
         }
     }
@@ -1041,12 +1026,10 @@ sub launch_ncd() {
             $this_app->info(
                 "no components to be run by NCM - ncm-ncd won't be called");
             return (0);
-        }
-        else {
+        } else {
             push @cmd, '--all';
         }
-    }
-    else {
+    } else {
         push @cmd, @{ $this_app->{ICLIST} };
     }
 
@@ -1067,8 +1050,7 @@ sub launch_ncd() {
     my $cmd_line = join( " ", @cmd );
     if ( $this_app->option('noaction') ) {
         $this_app->info( "would run (noaction mode): " . $cmd_line );
-    }
-    else {
+    } else {
         $this_app->info( "about to run: " . $cmd_line );
         my $verb = $cmd[0];
         if ( -x $verb ) {
@@ -1077,8 +1059,7 @@ sub launch_ncd() {
             $result = $? >> 8;
             $this_app->info($errormsg);
             $this_app->info("ncm-ncd finished with status: $result");
-        }
-        else {
+        } else {
             $this_app->error("Command $verb not found");
             $result = 1;
         }
@@ -1117,8 +1098,7 @@ unless ( $this_app = cdispd->new( $0, @ARGV ) ) {
 if ( $this_app->option('quiet') ) {
     $this_app->debug( 1, "quiet option enabled, become a daemon" );
     daemonize();    # become a daemon
-}
-else {
+} else {
     $this_app->debug( 1, "no quiet option, do not become a daemon" );
 }
 
@@ -1154,9 +1134,7 @@ $this_app->info('Dry run, no changes will be performed (--noaction flag set)')
 
 $this_app->info("initalization of components");
 $last_ncd_status = init_components();
-$this_app->debug( 1,
-"Initializing \$last_ncd_status to init_components status ($last_ncd_status)"
-);
+$this_app->debug( 1, "Initializing \$last_ncd_status to init_components status ($last_ncd_status)");
 my $ref_cid = $this_app->{OLD_CFID};
 $this_app->debug( 1, "CID of reference configuration set to $ref_cid" );
 
@@ -1169,13 +1147,11 @@ while (1) {
     $SIG{'HUP'} = 'IGNORE';
 
     $this_app->debug( 1, "checking for new profiles ..." );
-    $this_app->debug( 3,
-        "CID of last profile processed: " . $this_app->{OLD_CFID} );
+    $this_app->debug( 3, "CID of last profile processed: " . $this_app->{OLD_CFID} );
 
     while ( $cm->getCurrentCid() == $this_app->{OLD_CFID} ) {
         $this_app->verbose('no new profile found, sleeping');
-        $this_app->debug( 1,
-            "sleep for " . $this_app->option('interval') . " seconds" );
+        $this_app->debug( 1, "sleep for " . $this_app->option('interval') . " seconds" );
         sleep( $this_app->option('interval') );
     }
     $this_app->info("new profile arrived, examining...");
@@ -1191,19 +1167,15 @@ while (1) {
     $this_app->debug( 3, "old profile checksum: " . $this_app->{OLD_CKSUM} );
     $this_app->debug( 3, "new profile checksum: " . $this_app->{NEW_CKSUM} );
     if ( $this_app->{OLD_CFID} ne $this_app->{NEW_CFID} ) {
-        $this_app->verbose(
-            "new profile detected: cid=" . $this_app->{NEW_CFID} );
+        $this_app->verbose( "new profile detected: cid=" . $this_app->{NEW_CFID} );
         if (   ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} )
             || ( $last_ncd_status != 0 ) )
         {
             if ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} ) {
                 $this_app->info("new (and changed) profile detected");
                 clean_ICList() if $last_ncd_status == 0;
-            }
-            else {
-                $this_app->info(
-"new profile identical but re-running ncm-ncd since last execution reported errors"
-                );
+            } else {
+                $this_app->info( "new profile identical but re-running ncm-ncd since last execution reported errors");
             }
 
 # Not really needed when re-running after a previous run error (as ICList is not cleared) but harmless
@@ -1212,31 +1184,23 @@ while (1) {
             $this_app->debug( 1, "launch_ncd() exit status = $ncd_status" );
             unless ($ncd_status) {
                 $ref_cid = $this_app->{NEW_CFID};
-                $this_app->debug( 1,
-"ncm-ncd executed successfully: update base configuration to CID $ref_cid"
-                );
+                $this_app->debug( 1, "ncm-ncd executed successfully: update base configuration to CID $ref_cid");
                 $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
                 $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
                 $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
                 $last_ncd_status       = 0;
-            }
-            else {
+            } else {
 
    # neither forgotten nor forgiven:
    # do not update reference configuration if ncm-ncd execution reported errors.
-                $this_app->debug( 1,
-"ncm-ncd reported errors: base configuration kept at CID $ref_cid"
-                );
+                $this_app->debug( 1, "ncm-ncd reported errors: base configuration kept at CID $ref_cid");
                 $last_ncd_status = $ncd_status;
             }
 
+        } else {
+            $this_app->info( "new profile has same checksum as old one, no NCM run");
         }
-        else {
-            $this_app->info(
-                "new profile has same checksum as old one, no NCM run");
-        }
-    }
-    else {
+    } else {
         $this_app->verbose("no new profile found");
     }
 
