@@ -626,6 +626,20 @@ sub clean_ICList() {
 }
 
 #
+# remove_component( $element )
+#
+# Remove a component from @ICLIST if present.
+#
+sub remove_component($) {
+    my $comp = shift;
+    
+    $this_app->debug(3,"Removing component $comp from ICLIST");
+    @{$this_app->{ICLIST}} = grep (!/^$comp$/, @{$this_app->{ICLIST}});
+    
+    return;
+}
+
+#
 # add_component( $element )
 #
 # Add a new component to the list of components to
@@ -944,14 +958,12 @@ sub compare_profiles() {
         %new_hash = ();
     }
 
-    # GC 5/05 commented out below - removed components should NOT be invoked
-    #    # add to ICList those components that have been removed
-    #    foreach $key (keys(%old_hash)) {
-    #      if (!exists($new_hash{$key})) {
-    #	$this_app->debug(2, "component $key: removed");
-    #	add_component($old_hash{$key});
-    #      }
-    #    }
+    # Remove from ICLIST those components that have been removed
+    foreach $key (keys(%old_hash)) {
+        if (!exists($new_hash{$key})) {
+            remove_component($key);
+        }
+    }
 
     # add to ICList those components that are new and active
     foreach $key ( keys(%new_hash) ) {
@@ -1186,13 +1198,7 @@ while (1) {
         {
             if ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} ) {
                 $this_app->info("new (and changed) profile detected");
-
-                # This is not perfect and could be improved. In the first run
-                # (and only in the first run), a component may fail which is
-                # then executed in the second run even if the component is
-                # deactivated in the profile (as IC list is not reset). However,
-                # in subsequent runs it will behave correctly.
-                clean_ICList();
+                clean_ICList() if $last_ncd_status == 0;
             }
             else {
                 $this_app->info(
