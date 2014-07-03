@@ -561,44 +561,43 @@ sub daemonize() {
 #
 # Perform an initial call of all components (with dispatch=true)
 #
+# Returns 0 if success, else a non-zero value.
+#
 sub init_components() {
 
-    my ( $cred, $cm );
-    my ( $path, $ele, %hash, $key, $error );
-
     # credentials are undefined
-    $cred = 0;
+    my $cred = 0;
 
-    $cm = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
+    my $cm = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
     $this_app->{OLD_CFG} = $cm->getLockedConfiguration($cred);
 
     #
     # Call the list of components
     #
 
-    $error = 0;
-    $path  = "/software/components";
+    my $status = 0;   # Assume success
+    my $path  = "/software/components";
     if ( $this_app->{OLD_CFG}->elementExists($path) ) {
-        $ele = $this_app->{OLD_CFG}->getElement($path);
+        my $ele = $this_app->{OLD_CFG}->getElement($path);
 
-        %hash = $ele->getHash();
-        foreach $key ( keys(%hash) ) {
+        my %hash = $ele->getHash();
+        foreach my $key ( keys(%hash) ) {
 
-            $this_app->debug( 2, "checking component $key" );
+            $this_app->debug(2, "checking component $key" );
 
             if ( is_active( $this_app->{OLD_CFG}, $hash{$key}->getPath() ) ) {
-                $this_app->debug( 2, "component $key is active" );
+                $this_app->debug(2, "component $key is active" );
                 add_component( $hash{$key} );
             }
             else {
-                $this_app->debug( 2, "component $key is NOT active" );
+                $this_app->debug(2, "component $key is NOT active" );
             }
         }
-        $error = launch_ncd();
+        $status = launch_ncd();
     }
     else {
-        $error = 1;
-        $this_app->error("Path $path is not defined, no components to configure!!!");
+        $status = 1;
+        $this_app->status("Path $path is not defined: no components to configure");
     }
 
     # current configuration profile is this one
@@ -607,7 +606,7 @@ sub init_components() {
     $this_app->{OLD_CKSUM} = $this_app->{OLD_ELE}->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
-    return $error;
+    return $status;
 
 }
 
@@ -634,7 +633,7 @@ sub remove_component($) {
     my $comp = shift;
     
     $this_app->debug(3,"Removing component $comp from ICLIST");
-    @{$this_app->{ICLIST}} = grep (!/^$comp$/, @{$this_app->{ICLIST}});
+    @{$this_app->{ICLIST}} = grep ($_ ne $comp, @{$this_app->{ICLIST}});
     
     return;
 }
@@ -919,15 +918,14 @@ sub changed_CPE($$$) {
 #
 sub compare_profiles() {
 
-    my ( $path,    $resource, $key );
-    my ( $old_cfg, $old_ele,  %old_hash, $old_cksum );
-    my ( $new_cfg, $new_ele,  %new_hash, $new_cksum );
+    my ($old_ele,  %old_hash);
+    my ($new_ele,  %new_hash);
 
     # get the list of components
-    $old_cfg = $this_app->{OLD_CFG};
-    $new_cfg = $this_app->{NEW_CFG};
+    my $old_cfg = $this_app->{OLD_CFG};
+    my $new_cfg = $this_app->{NEW_CFG};
 
-    $path = "/software/components";
+    my $path = "/software/components";
 
     # does the path exist at all - avoid crash cdispd in weird configuration 
     # situations this should never happen of course...
@@ -949,17 +947,16 @@ sub compare_profiles() {
     }
 
     # Remove from ICLIST those components that have been removed
-    foreach $key (keys(%old_hash)) {
+    foreach my $key (keys(%old_hash)) {
         if (!exists($new_hash{$key})) {
             remove_component($key);
         }
     }
 
     # add to ICList those components that are new and active
-    foreach $key ( keys(%new_hash) ) {
-        if ( !exists( $old_hash{$key} )
-            && is_active( $new_cfg, $new_hash{$key}->getPath() ) )
-        {    # only add if active
+    foreach my $key ( keys(%new_hash) ) {
+        # Only add if component is active
+        if ( !exists( $old_hash{$key} ) && is_active( $new_cfg, $new_hash{$key}->getPath() ) ) {
             $this_app->debug( 2, "component $key: new and active" );
             add_component( $new_hash{$key} );
         }
@@ -967,7 +964,7 @@ sub compare_profiles() {
 
     # add to ICList those components whose status or
     # whose interested CPE's checksums have changed
-    foreach $key ( keys(%old_hash) ) {
+    foreach my $key ( keys(%old_hash) ) {
 
         next if ( !exists( $new_hash{$key} ) );
 
@@ -1135,6 +1132,8 @@ $this_app->info('Dry run, no changes will be performed (--noaction flag set)')
   if ( $this_app->option('noaction') );
 
 $this_app->info("initalization of components");
+# $last_ncd_status keeps track of the previous execution of ncm-ncd. It is a
+# usual exit code, with 0=success.
 $last_ncd_status = init_components();
 $this_app->debug( 1, "Initializing \$last_ncd_status to init_components status ($last_ncd_status)");
 my $ref_cid = $this_app->{OLD_CFID};
@@ -1175,12 +1174,15 @@ while (1) {
         {
             if ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} ) {
                 $this_app->info("new (and changed) profile detected");
+                # Clear the list of component to run only if last execution of
+                # ncm-ncd was successful
                 clean_ICList() if $last_ncd_status == 0;
             } else {
                 $this_app->info( "new profile identical but re-running ncm-ncd since last execution reported errors");
             }
 
-# Not really needed when re-running after a previous run error (as ICList is not cleared) but harmless
+            # Not really needed when re-running after a previous run error 
+            # (as ICList is not cleared) but harmless
             compare_profiles();
             $ncd_status = launch_ncd();
             $this_app->debug( 1, "launch_ncd() exit status = $ncd_status" );
@@ -1192,9 +1194,8 @@ while (1) {
                 $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
                 $last_ncd_status       = 0;
             } else {
-
-   # neither forgotten nor forgiven:
-   # do not update reference configuration if ncm-ncd execution reported errors.
+                # neither forgotten nor forgiven:
+                # do not update reference configuration if ncm-ncd execution reported errors.
                 $this_app->debug( 1, "ncm-ncd reported errors: base configuration kept at CID $ref_cid");
                 $last_ncd_status = $ncd_status;
             }
