@@ -588,14 +588,12 @@ sub init_components() {
             if ( is_active( $this_app->{OLD_CFG}, $hash{$key}->getPath() ) ) {
                 $this_app->debug(2, "component $key is active" );
                 add_component( $hash{$key} );
-            }
-            else {
+            } else {
                 $this_app->debug(2, "component $key is NOT active" );
             }
         }
         $status = launch_ncd();
-    }
-    else {
+    } else {
         $status = 1;
         $this_app->status("Path $path is not defined: no components to configure");
     }
@@ -678,8 +676,7 @@ sub add_component($) {
         unless ( grep $comp eq $_, @{ $this_app->{ICLIST} } ) {
             $this_app->report("component $comp, marked to dispatch, added to list");
             push( @{ $this_app->{ICLIST} }, $comp );
-        }
-        else {
+        } else {
             $this_app->report("component $comp already in list");
         }
     } else {
