@@ -374,7 +374,7 @@ sub _initialize {
     #
 
     # external version number
-    $self->{'VERSION'} = '${project.artifactId}';
+    $self->{'VERSION'} = '${project.version}';
 
     # show setup text
     $self->{'USAGE'} = "Usage: cdispd [options]\n";
@@ -417,6 +417,8 @@ use EDG::WP4::CCM::CacheManager;
 use EDG::WP4::CCM::Path;
 
 use vars qw($this_app %SIG);
+
+use constant COMP_CONFIG_PATH => '/software/components';
 
 #------------------------------------------------------------
 # Functions in the main program
@@ -572,9 +574,8 @@ sub init_components() {
     #
 
     my $status = 0;   # Assume success
-    my $path  = "/software/components";
-    if ( $this_app->{OLD_CFG}->elementExists($path) ) {
-        my $ele = $this_app->{OLD_CFG}->getElement($path);
+    if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {
+        my $ele = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH);
 
         my %hash = $ele->getHash();
         foreach my $key ( keys(%hash) ) {
@@ -591,11 +592,11 @@ sub init_components() {
         $status = launch_ncd();
     } else {
         $status = 1;
-        $this_app->status("Path $path is not defined: no components to configure");
+        $this_app->status("Path ".COMP_CONFIG_PATH." is not defined: no components to configure");
     }
 
     # current configuration profile is this one
-    $path                  = EDG::WP4::CCM::Path->new("/");
+    my $path                  = EDG::WP4::CCM::Path->new("/");
     $this_app->{OLD_ELE}   = $this_app->{OLD_CFG}->getElement($path);
     $this_app->{OLD_CKSUM} = $this_app->{OLD_ELE}->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
