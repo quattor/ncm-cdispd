@@ -411,6 +411,7 @@ package main;
 
 use strict;
 use POSIX qw(setsid);
+use Readonly;
 
 use LC::Exception qw (SUCCESS throw_error);
 use EDG::WP4::CCM::CacheManager;
@@ -418,7 +419,7 @@ use EDG::WP4::CCM::Path;
 
 use vars qw($this_app %SIG);
 
-use constant COMP_CONFIG_PATH => '/software/components';
+Readonly my $COMP_CONFIG_PATH => '/software/components';
 
 #------------------------------------------------------------
 # Functions in the main program
@@ -574,8 +575,8 @@ sub init_components() {
     #
 
     my $status = 0;   # Assume success
-    if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {
-        my $ele = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH);
+    if ( $this_app->{OLD_CFG}->elementExists($COMP_CONFIG_PATH) ) {
+        my $ele = $this_app->{OLD_CFG}->getElement($COMP_CONFIG_PATH);
 
         my %hash = $ele->getHash();
         foreach my $key ( keys(%hash) ) {
@@ -592,7 +593,7 @@ sub init_components() {
         $status = launch_ncd();
     } else {
         $status = 1;
-        $this_app->status("Path ".COMP_CONFIG_PATH." is not defined: no components to configure");
+        $this_app->status("Path $COMP_CONFIG_PATH is not defined: no components to configure");
     }
 
     # current configuration profile is this one
