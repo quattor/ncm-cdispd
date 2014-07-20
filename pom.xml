@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.quattor.maven</groupId>
     <artifactId>build-profile</artifactId>
-    <version>1.29</version>
+    <version>1.35</version>
   </parent>
 
   <scm>
@@ -112,7 +112,7 @@
 		  <source>
 		    <location>${project.build.directory}/sbin</location>
 		    <includes>
-		      <include>${project.artifactId}</include>
+		      <include>**/*</include>
 		    </includes>
 		  </source>
 		</sources>
@@ -187,9 +187,9 @@
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
                   <source>
-                    <location>${project.build.directory}/sbin</location>
+                    <location>${project.build.directory}/quattor</location>
                     <includes>
-                      <include>check-ncm-cdispd</include>
+                      <include>**/*</include>
                     </includes>
                   </source>
                 </sources>
@@ -253,12 +253,31 @@
 		  <directory>src/main/scripts</directory>
 		  <filtering>true</filtering>
 		  <includes>
-		    <include>**/*</include>
+		    <include>${project.artifactId}</include>
 		  </includes>
 		</resource>
 	      </resources>
 	    </configuration>
 	  </execution>
+          <execution>
+            <id>filter-check-daemon-sources</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/quattor/scripts</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/scripts</directory>
+                  <filtering>true</filtering>
+                  <includes>
+                    <include>check-ncm-cdispd</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
 	  <execution>
 	    <id>filter-config</id>
 	    <phase>process-sources</phase>
@@ -290,7 +309,7 @@
 		<resource>
 		  <directory>src/main/scripts</directory>
 		  <includes>
-		    <include>*</include>
+		    <include>ncm-cdispd</include>
 		  </includes>
 		  <filtering>true</filtering>
 		</resource>
@@ -301,25 +320,6 @@
 	       for the target/lib/perl and the target/doc/pod. The
 	       following two executions do that. We'll have to ignore
 	       the intermediate files from the RPM. -->
-	  <execution>
-	    <id>mimick-ncm-ncd-man</id>
-	    <phase>process-sources</phase>
-	    <goals>
-	      <goal>copy-resources</goal>
-	    </goals>
-	    <configuration>
-	      <outputDirectory>${project.build.directory}/doc/pod</outputDirectory>
-	      <resources>
-		<resource>
-		  <directory>src/main/scripts</directory>
-		  <includes>
-		    <include>*.pod</include>
-		  </includes>
-		  <filtering>true</filtering>
-		</resource>
-	      </resources>
-	    </configuration>
-	  </execution>
 	  <execution>
 	    <id>mimick-ncm-ncd-man-pod</id>
 	    <phase>process-sources</phase>
@@ -352,18 +352,14 @@
 	    </goals>
 	    <configuration>
 	      <tasks name="Rename">
-		<move filtering="true" todir="${project.build.directory}/doc/pod">
-		  <fileset dir="${project.build.directory}/doc/pod" />
-		  <mapper>
-		    <globmapper from="ncm-cdispd" to="ncm-cdispd.pod" />
-		  </mapper>
-		</move>
-		<move filtering="true" todir="${project.build.directory}/lib/perl">
-		  <fileset dir="${project.build.directory}/lib/perl" />
-		  <mapper>
-		    <globmapper from="ncm-cdispd" to="ncm-cdispd.pod" />
-		  </mapper>
-		</move>
+		<move filtering="true"
+                      file="${project.build.directory}/doc/pod/ncm-cdispd" 
+                      tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod"
+                      verbose="true"/>
+		<move filtering="true"
+                      file="${project.build.directory}/lib/perl/ncm-cdispd" 
+                      tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod"
+                      verbose="true"/>
 	      </tasks>
 	    </configuration>
 	  </execution>
