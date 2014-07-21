@@ -25,13 +25,13 @@ which components must be run.
 
 =cut
 
-#############################################################
+####################################################################
 # Note about debug level used in this package:
 #    - level 1: reserved to ncm-cdispd itself
-#    - level 2: compare_profiles() and add_component()
+#    - level 2: compare_profiles(), is_active() and add_component()
 #    - level 3: utility functions used to compare profiles
 #               (very verbose!)
-#############################################################
+####################################################################
 
 package CDISPD::Utils;
 
@@ -44,7 +44,7 @@ use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
 use EDG::WP4::CCM::Path;
 
-our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component is_active);
+our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component);
 our $this_app;
 
 *this_app = \$main::this_app;
@@ -161,6 +161,11 @@ sub add_component($$) {
         }
     }
 
+    # Do no add an inactive component.
+    unless ( is_active($comp_config,$component)) {
+        return (0);
+    }
+
     unless ( defined($comp_config->{$component}->{dispatch}) ) {
         $this_app->warn("No dispatch flag defined for component $component, not added to list");
         return (0);
@@ -174,7 +179,7 @@ sub add_component($$) {
             $this_app->report("component $component already in list");
         }
     } else {
-        $this_app->debug( 3, "component $component, marked to not dispatch, NOT added to list" );
+        $this_app->debug(2, "component $component, marked to not dispatch, NOT added to list" );
     }
 
     return 0;
@@ -249,9 +254,9 @@ sub is_active($$) {
     }
 
     if ( $comp_config->{$component}->{active} ) {
-        $this_app->debug( 3, "component $component is active" );
+        $this_app->debug(2, "component $component is active" );
     } else {
-        $this_app->debug( 3, "component $component is NOT active" );    
+        $this_app->debug(2, "component $component is NOT active" );    
     }
 
     return $comp_config->{$component}->{active};

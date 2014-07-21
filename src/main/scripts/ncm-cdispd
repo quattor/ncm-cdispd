@@ -258,7 +258,7 @@ use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
 use EDG::WP4::CCM::Path;
 use CDISPD::Application;
-use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component is_active);
+use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component);
 
 our $this_app;
 our %SIG;
@@ -423,14 +423,8 @@ sub init_components() {
         my $comp_config = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH)->getTree();
 
         foreach my $component (keys(%$comp_config)) {
-            $this_app->debug(2, "checking component $component");
-
-            if ( is_active($comp_config, $component) ) {
-                $this_app->debug(2, "component $component is active");
-                add_component($comp_config,$component);
-            } else {
-                $this_app->debug(2, "component $component is NOT active");
-            }
+            $this_app->debug(2, "Adding component $component if it is eligible to run");
+            add_component($comp_config,$component);
         }
         $status = launch_ncd();
     } else {
