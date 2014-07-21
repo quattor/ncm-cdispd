@@ -52,19 +52,27 @@ our $this_app;
 use constant COMP_CONFIG_PATH => '/software/components';
 
 
-#
-# escape($string)
-#
-# This function replaces non alphanumeric characters by an underscore followed
-# by the character hexadecimal code (2 digits).
-#
-# Arguments
-#    - $string: a string whose non alphanumeric characters must be escaped
-#
-# Return value: the escaped string
-#
-# Note: this function could be replaced by a generic one if one is made available
-#
+=pod
+
+=head1 Available functions
+
+=over 4
+
+
+=item escape ($string):string
+
+ This function replaces non alphanumeric characters by an underscore followed
+ by the character hexadecimal code (2 digits).
+
+ Arguments
+    - $string: a string whose non alphanumeric characters must be escaped
+
+ Return value: the escaped string
+
+ Note: this function could be replaced by a generic one if one is made available
+
+=cut
+
 sub escape($)
 {
     my $str = shift;
@@ -82,15 +90,18 @@ sub escape($)
 }
 
 
-#
-# clean_ICList()
-#
-# Empty the list of invoked components ($this_app->{ICLIST})
-#
-# Arguments: none
-#
-# Return value: none
-#
+=pod 
+
+=item clean_ICList ()
+
+ Empty the list of invoked components ($this_app->{ICLIST})
+
+ Arguments: none
+
+ Return value: none
+
+=cut
+
 sub clean_ICList() {
 
     $this_app->debug(3, "cleaning IC list");
@@ -100,16 +111,19 @@ sub clean_ICList() {
 
 }
 
-#
-# remove_component ($component)
-#
-# Remove a component from the list of invoked components if present.
-#
-# Arguments
-#    - $component: name of the component to remove
-#
-# Return value: none
-#
+=pod
+
+=item remove_component ($component)
+
+ Remove a component from the list of invoked components if present.
+
+ Arguments
+    - $component: name of the component to remove
+
+ Return value: none
+
+=cut
+
 sub remove_component($) {
     my $component = shift;
     
@@ -119,18 +133,21 @@ sub remove_component($) {
     return;
 }
 
-#
-# add_component($comp_config, $component)
-#
-# Add a new component to the list of components to be invoked by ncm-ncd ($this_app->{ICLIST}).
-# Components whose property "dispatch" is false are ignored.
-#
-# Arguments
-#    - $comp_config: a hash reference with the contents of /software/components
-#    - $component: a string representing a component name (key in the previous hash)
-#
-# Return value: 0 if success, else a non-zero value.
-#
+=pod
+
+=item add_component ($comp_config, $component):int
+
+ Add a new component to the list of components to be invoked by ncm-ncd ($this_app->{ICLIST}).
+ Components whose property "dispatch" is false are ignored.
+
+ Arguments
+    - $comp_config: a hash reference with the contents of /software/components
+    - $component: a string representing a component name (key in the previous hash)
+
+ Return value: 0 if success, else a non-zero value.
+
+=cut
+
 sub add_component($$) {
 
     my ($comp_config, $component) = @_;
@@ -164,18 +181,21 @@ sub add_component($$) {
 
 }
 
-#
-# changed_status (%old_comp_config, %new_comp_config, $component)
-#
-# Check if the status (active/inactive) of a component has changed.
-#
-# Arguments:
-#    - $old_cfg: a hash containing the previous configuration of components (/software/components)
-#    - $new_hash: a has containing the new configuration of components (/software/components)
-#    - $component: component name
-#
-# Return value: a boolean true if the status changed to active, false otherwise
-#
+=pod
+
+=item changed_status (%old_comp_config, %new_comp_config, $component):boolean
+
+ Check if the status (active/inactive) of a component has changed.
+
+ Arguments:
+    - $old_cfg: a hash containing the previous configuration of components (/software/components)
+    - $new_hash: a has containing the new configuration of components (/software/components)
+    - $component: component name
+
+ Return value: a boolean true if the status changed to active, false otherwise
+
+=cut
+
 sub changed_status($$$) {
 
     my ($old_comp_config, $new_comp_config, $component) = @_;
@@ -205,17 +225,20 @@ sub changed_status($$$) {
 
 }
 
-#
-# is_active ($comp_config, $component)
-#
-# Check if the status of the component is Active
-#
-# Arguments
-#    - $comp_config: a hash reference with the contents of /software/components
-#    - $component: a string representing a component name (key in the previous hash)
-#
-# Return value: a boolean true when the component is active
-#
+=pod
+
+=item is_active ($comp_config, $component):boolean
+
+ Check if the status of the component is Active
+
+ Arguments
+    - $comp_config: a hash reference with the contents of /software/components
+    - $component: a string representing a component name (key in the previous hash)
+
+ Return value: a boolean true when the component is active
+
+=cut
+
 sub is_active($$) {
     my ($comp_config, $component)  = @_;
 
@@ -234,21 +257,24 @@ sub is_active($$) {
     return $comp_config->{$component}->{active};
 }
 
-#
-# get_CPE ($comp_config, $component)
-#
-# Return the list of configuration paths (Configuration Path Entries) whose changes
-# have been subscribe by the current component.
-#
-# Arguments
-#    - $comp_config: a hash reference with the contents of /software/components
-#    - $component: a string representing a component name (key in the previous hash)
-#
-# Return value: an array containing:
-#    - the component configuration path (except if --noautoregcomp has been specified)
-#    - the component package path (except if --noautoregpkg has been specified)
-#    - each path whose change has been explicitely subscribed (register_change property) 
-#
+=pod
+
+=item get_CPE ($comp_config, $component):array
+
+ Return the list of configuration paths (Configuration Path Entries) whose changes
+ have been subscribe by the current component.
+
+ Arguments
+    - $comp_config: a hash reference with the contents of /software/components
+    - $component: a string representing a component name (key in the previous hash)
+
+ Return value: an array containing:
+    - the component configuration path (except if --noautoregcomp has been specified)
+    - the component package path (except if --noautoregpkg has been specified)
+    - each path whose change has been explicitely subscribed (register_change property) 
+
+=cut
+
 sub get_CPE($$) {
 
     my @list = ();
@@ -288,19 +314,22 @@ sub get_CPE($$) {
 
 }
 
-#
-# changed_CPE ($old_comp_config, $new_comp_config, $component)
-#
-# Check if one of the CPE (Configuration Path Entries) subscribed had its configuration changed
-# between previous and current profile.
-#
-# Arguments:
-#    - $old_cfg: a hash containing the previous configuration of components (/software/components)
-#    - $new_hash: a has containing the new configuration of components (/software/components)
-#    - $component: component name
-#
-# Return value: a boolean true if a CPE has changed, false otherwise
-#
+=pod
+
+=item changed_CPE ($old_comp_config, $new_comp_config, $component):boolean
+
+ Check if one of the CPE (Configuration Path Entries) subscribed had its configuration changed
+ between previous and current profile.
+
+ Arguments:
+    - $old_cfg: a hash containing the previous configuration of components (/software/components)
+    - $new_hash: a has containing the new configuration of components (/software/components)
+    - $component: component name
+
+ Return value: a boolean true if a CPE has changed, false otherwise
+
+=cut
+
 sub changed_CPE($$$) {
 
     my ($old_comp_config, $new_comp_config, $component) = @_;
@@ -327,16 +356,19 @@ sub changed_CPE($$$) {
     return (0);
 }
 
-#
-# compare_profiles()
-#
-# Compare two profiles and fill the list of invoked components with those whose
-# configuration has changed. Most of the comparison work is done by utility functions.
-#
-# Arguments: none
-#
-# Return value: none
-#
+=pod
+
+=item compare_profiles ()
+
+ Compare two profiles and fill the list of invoked components with those whose
+ configuration has changed. Most of the comparison work is done by utility functions.
+
+ Arguments: none
+
+ Return value: none
+
+=cut
+
 sub compare_profiles() {
 
     # does the path exist at all - avoid crash cdispd in weird configuration 
