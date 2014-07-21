@@ -302,7 +302,7 @@ sub get_CPE($$) {
     # of packages has been disabled
     #
     unless ( $this_app->option('noautoregpkg') ) {
-        my $path = "/software/packages/".escape("ncm_$component");
+        my $path = "/software/packages/".escape("ncm-$component");
         $this_app->debug(3, "add $path to CPE list");
         push @list, $path;
     }
@@ -325,12 +325,12 @@ sub get_CPE($$) {
 
 =item changed_CPE ($old_comp_config, $new_comp_config, $component):boolean
 
- Check if one of the CPE (Configuration Path Entries) subscribed had its configuration changed
- between previous and current profile.
+ Check if one of the CPE (Configuration Path Entry) subscribed had its configuration changed
+ between previous and current profile or if the CPE list was changed.
 
  Arguments:
-    - $old_cfg: a hash containing the previous configuration of components (/software/components)
-    - $new_hash: a has containing the new configuration of components (/software/components)
+    - $old_comp_config: a hash containing the previous configuration of components (/software/components)
+    - $new_comp_config: a has containing the new configuration of components (/software/components)
     - $component: component name
 
  Return value: a boolean true if a CPE has changed, false otherwise
@@ -343,18 +343,33 @@ sub changed_CPE($$$) {
 
     $this_app->debug(3, "Check CPE configuration changes for $component");
 
-    foreach my $config_path (get_CPE($new_comp_config, $component)) {
-        unless ( defined($new_comp_config->{$config_path}) ) {
+    my @old_CPE_list = get_CPE($old_comp_config, $component);
+    my @new_CPE_list = get_CPE($new_comp_config, $component);
+
+    # Check that both lists are the same
+    unless ( @new_CPE_list == @old_CPE_list ) {
+        $this_app->debug(3, "CPE list changed between previous and current profiles (different number of element)");
+        return (1);
+    }
+    foreach my $cpe (@old_CPE_list) {
+        unless ( grep($_ eq $cpe, @new_CPE_list) ) {
+            $this_app->debug(3, "CPE list changed between previous and current profiles (entry '$cpe' removed)");
+            return(1);
+        }
+    }
+
+    foreach my $config_path (@new_CPE_list) {
+        unless ( $this_app->{NEW_CFG}->elementExists($config_path) ) {
             $this_app->error("$config_path doesn't exist in new profile: component $component has subscribed a non existent path");
             return (0);
         }
 
-        unless ( defined($old_comp_config->{$config_path}) ) {
-            $this_app->debug(3 ,"$config_path doesn't exist in previous profile: assume it is new and CPE has changed");
+        unless ( $this_app->{OLD_CFG}->elementExists($config_path) ) {
+            $this_app->debug(3, "$config_path doesn't exist in previous profile: assume it is new and CPE has changed");
             return (1);
         }
 
-        if ( $this_app->{OLDCFG}->getElement($config_path)->getChecksum() ne $this_app->{NEWCFG}->getElement($config_path)->getChecksum() ) {
+        if ( $this_app->{OLD_CFG}->getElement($config_path)->getChecksum() ne $this_app->{NEW_CFG}->getElement($config_path)->getChecksum() ) {
             $this_app->debug(3, "Configuration path $config_path subbscribed by component $component has changed" );
             return (1);
         }
