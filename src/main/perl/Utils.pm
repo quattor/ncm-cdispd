@@ -53,6 +53,36 @@ use constant COMP_CONFIG_PATH => '/software/components';
 
 
 #
+# escape($string)
+#
+# This function replaces non alphanumeric characters by an underscore followed
+# by the character hexadecimal code (2 digits).
+#
+# Arguments
+#    - $string: a string whose non alphanumeric characters must be escaped
+#
+# Return value: the escaped string
+#
+# Note: this function could be replaced by a generic one if one is made available
+#
+sub escape($)
+{
+    my $str = shift;
+    my @str = split //, $str;
+    my @e_str;
+
+    for my $c (@str) {
+      if ( $c !~ /\w/ ) {
+        $c = sprintf("_%2x",ord($c));
+      }
+      push @e_str, $c;
+    }
+
+    return join('',@e_str);
+}
+
+
+#
 # clean_ICList()
 #
 # Empty the list of invoked components ($this_app->{ICLIST})
@@ -239,7 +269,7 @@ sub get_CPE($$) {
     # of packages has been disabled
     #
     unless ( $this_app->option('noautoregpkg') ) {
-        my $path = "/software/packages/ncm_2d$component";
+        my $path = "/software/packages/".escape("ncm_$component");
         $this_app->debug(3, "add $path to CPE list");
         push @list, $path;
     }
