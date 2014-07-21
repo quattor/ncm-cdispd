@@ -217,16 +217,18 @@ sub changed_status($$$) {
         return (0);
     }
 
-    if ( $new_comp_config->{$component}->{active} && !$old_comp_config->{$component}->{active} ) {
-        $this_app->debug(3, "component $component has changed its status from NOT active to active");
-        return (1);
-    } elsif ( $old_comp_config->{$component}->{active} && !$new_comp_config->{$component}->{active} ) {
-        $this_app->debug(3, "component $component has changed its status from active to NOT active");
-    } else {
+    if ( $new_comp_config->{$component}->{active} == $old_comp_config->{$component}->{active} ) {
         $this_app->debug(3, "component $component has not changed its status");
+        return (0);
+    };
+
+    if ( $new_comp_config->{$component}->{active} && !$old_comp_config->{$component}->{active} ) {
+        $this_app->debug(3, "component $component has changed its status from inactive to active");
+    } else {
+        $this_app->debug(3, "component $component has changed its status from active to inactive");
     }
 
-    return (0);
+    return (1);
 
 }
 
