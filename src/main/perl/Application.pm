@@ -29,17 +29,21 @@ package CDISPD::Application;
 use CAF::Application;
 use CAF::Reporter;
 use CAF::Process;
+use CAF::Object;
 use LC::Exception qw (SUCCESS throw_error);
 
 use strict;
 
 our @ISA = qw(CAF::Application CAF::Reporter);
 
+
 #
 # Public Methods/Functions for CAF
 #
 
 sub app_options() {
+
+    my $self = shift;
 
     # these options complement the ones defined in CAF::Application
     push(
@@ -89,7 +93,8 @@ sub app_options() {
         {
             NAME    => 'logfile=s',
             HELP    => 'path/filename to use for cdispd logs',
-            DEFAULT => '/var/log/ncm-cdispd.log'
+            # Do not define logfile if NoAction is set to allow unit testing to work
+            DEFAULT => $CAF::Object::NoAction ? undef:'/var/log/ncm-cdispd.log'
         },
 
         {
