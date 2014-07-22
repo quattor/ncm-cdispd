@@ -152,6 +152,7 @@ sub add_component($$) {
     my ($comp_config, $component) = @_;
 
     if ( $this_app->option('state') ) {
+        # Touch the file to indicate the last time the component has been scheduled to run
         my $state_file = $this_app->option('state')."/$component";
         if ( open( TOUCH, ">$state_file" ) ) {
             close(TOUCH);

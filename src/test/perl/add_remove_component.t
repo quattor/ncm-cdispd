@@ -5,7 +5,7 @@ use Test::More tests => 21;
 use Test::NoWarnings;
 use Test::Quattor qw(profile1 broken_profile);
 use CDISPD::Utils;
-use CDISPD::Application;
+use CDISPD::Application qw(CDISPD_CONFIG_FILE);
 use Readonly;
 use CAF::Object;
 
@@ -23,6 +23,9 @@ the other related utility functions (remove_component(), clean_ICList())
 =cut
 
 # Initialize CAF::Application options
+# Configure state directory as in the default configuration (unfortunately doesn't work
+# as the config file is not open with CAF::FileEditor... file location cannot be mocked)
+#set_file_contents(CDISPD_CONFIG_FILE, 'state = /var/run/quattor-components');
 unless ( $this_app = CDISPD::Application->new($0,[]) ) {
     throw_error("Failed to initialize CAF::Application");
 }

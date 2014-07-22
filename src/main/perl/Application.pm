@@ -26,6 +26,8 @@ This class provides the ncm-cdispd specific methods used to initialize the CAF::
 
 package CDISPD::Application;
 
+use Exporter;
+
 use CAF::Application;
 use CAF::Reporter;
 use CAF::Process;
@@ -34,8 +36,10 @@ use LC::Exception qw (SUCCESS throw_error);
 
 use strict;
 
-our @ISA = qw(CAF::Application CAF::Reporter);
+our @ISA = qw(CAF::Application CAF::Reporter Exporter);
+our @EXPORT = qw(CDISPD_CONFIG_FILE);
 
+use constant CDISPD_CONFIG_FILE => "/etc/ncm-cdispd.conf";
 
 #
 # Public Methods/Functions for CAF
@@ -100,7 +104,7 @@ sub app_options() {
         {
             NAME    => 'cfgfile=s',
             HELP    => 'configuration file for cdispd defaults',
-            DEFAULT => '/etc/ncm-cdispd.conf'
+            DEFAULT => CDISPD_CONFIG_FILE
         },
 
         {
