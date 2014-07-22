@@ -73,9 +73,13 @@ use constant COMP_CONFIG_PATH => '/software/components';
 
 =cut
 
-sub escape($)
-{
+sub escape {
     my $str = shift;
+    unless ( defined($str) ) {
+        $this_app->error("escape(): missing argument");
+        return;
+    }
+
     my @str = split //, $str;
     my @e_str;
 
@@ -102,7 +106,7 @@ sub escape($)
 
 =cut
 
-sub clean_ICList() {
+sub clean_ICList {
 
     $this_app->debug(3, "cleaning IC list");
     $this_app->{ICLIST} = ();
@@ -122,8 +126,12 @@ sub clean_ICList() {
 
 =cut
 
-sub remove_component($) {
+sub remove_component {
     my $component = shift;
+    unless ( $component ) {
+        $this_app->error("remove_component(): missing argument");
+        return;
+    }
     
     $this_app->debug(3, "Removing component $component from ICLIST");
     @{$this_app->{ICLIST}} = grep ($_ ne $component, @{$this_app->{ICLIST}});
@@ -147,9 +155,13 @@ sub remove_component($) {
 
 =cut
 
-sub add_component($$) {
+sub add_component {
 
     my ($comp_config, $component) = @_;
+    unless ( $comp_config && $component ) {
+        $this_app->error("add_component(): missing argument(s)");
+        return (1);
+    }
 
     if ( $this_app->option('state') ) {
         # Touch the file to indicate the last time the component has been scheduled to run
@@ -201,9 +213,13 @@ sub add_component($$) {
 
 =cut
 
-sub changed_status($$$) {
+sub changed_status {
 
     my ($old_comp_config, $new_comp_config, $component) = @_;
+    unless ( $old_comp_config && $new_comp_config && $component ) {
+        $this_app->error("changed_status(): missing argument(s)");
+        return (0);
+    }
 
     unless ( defined($new_comp_config->{$component}->{active}) ) {
         # In the current profile, component is  misconfigured ('active' property is required):
@@ -248,8 +264,12 @@ sub changed_status($$$) {
 
 =cut
 
-sub is_active($$) {
+sub is_active {
     my ($comp_config, $component)  = @_;
+    unless ( $comp_config && $component ) {
+        $this_app->error("is_active(): missing argument(s)");
+        return (1);
+    }
 
     unless ( defined($comp_config->{$component}->{active}) ) {
         # this component is misconfigured, we do not want it to be called
@@ -284,10 +304,14 @@ sub is_active($$) {
 
 =cut
 
-sub get_CPE($$) {
+sub get_CPE {
 
     my @list = ();
     my ($comp_config, $component)  = @_;
+    unless ( $comp_config && $component ) {
+        $this_app->error("get_CPE(): missing argument(s)");
+        return (@list);
+    }
 
     #
     # add component path to @list, except if component auto-registration
@@ -339,9 +363,13 @@ sub get_CPE($$) {
 
 =cut
 
-sub changed_CPE($$$) {
+sub changed_CPE {
 
     my ($old_comp_config, $new_comp_config, $component) = @_;
+    unless ( $old_comp_config && $new_comp_config && $component ) {
+        $this_app->error("changed_CPE(): missing argument(s)");
+        return (0);
+    }
 
     $this_app->debug(3, "Check CPE configuration changes for $component");
 
@@ -393,7 +421,8 @@ sub changed_CPE($$$) {
 
 =cut
 
-sub compare_profiles() {
+sub compare_profiles {
+
     # Does the path exist at all? Avoid crashing cdispd in weird configuration. 
     my $old_comp_config;
     if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {

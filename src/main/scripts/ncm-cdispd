@@ -288,7 +288,7 @@ our %SIG;
 # Return value: none
 #
 
-sub delay_signals () {
+sub delay_signals {
 
     $SIG{'INT'}  = \&signal_terminate;
     $SIG{'TERM'} = \&register_signal;
@@ -305,7 +305,7 @@ sub delay_signals () {
 # Return value: none
 #
 
-sub immediate_signals () {
+sub immediate_signals {
 
     $SIG{'INT'}  = \&signal_terminate;
     $SIG{'TERM'} = \&signal_terminate;
@@ -325,9 +325,14 @@ sub immediate_signals () {
 # Return value: none
 #
 
-sub register_signal ($) {
+sub register_signal {
 
     my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("register_signal(): missing argument");
+        return;
+    }
+
     $this_app->{WAITING_SIGNAL} = $signal;
     $this_app->debug(1,"Signal $signal registered for delayed processing");
 
@@ -342,7 +347,7 @@ sub register_signal ($) {
 # Return value: none
 #
 
-sub process_signal () {
+sub process_signal {
 
     unless ( $this_app->{WAITING_SIGNAL} ) {
         $this_app->debug(1,"process_signal(): no delayed signal to process");
@@ -368,9 +373,13 @@ sub process_signal () {
 #
 # Proccess signals INT, TERM and QUIT: terminate cdispd daemon
 #
-sub signal_terminate ($) {
+sub signal_terminate {
 
     my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("signal_terminate(): missing argument");
+        return;
+    }
 
     $this_app->warn("signal handler: received signal: $signal");
     $this_app->warn('terminating ncm-cdispd...');
@@ -382,9 +391,13 @@ sub signal_terminate ($) {
 #
 # Proccess HUP signal: reinitialize cdispd daemon
 #
-sub signal_reinitialize ($) {
+sub signal_reinitialize {
 
     my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("signal_reinitialize(): missing argument");
+        return;
+    }
 
     $this_app->warn("signal handler: received signal: $signal");
     $this_app->warn("reinitializing daemon...");
@@ -408,9 +421,13 @@ sub signal_reinitialize ($) {
 # Exception handling
 # Use of LC::Exception with CAF
 #
-sub exception_handler ($$) {
+sub exception_handler {
 
     my ( $ec, $e ) = @_;
+    unless ( $ec && $e ) {
+        $this_app->error("exception_handler(): missing argument");
+        return;
+    }
 
     $this_app->error("fatal exception:");
     $this_app->error( $e->text );
@@ -430,7 +447,7 @@ sub exception_handler ($$) {
 # Become a daemon. Perform a couple of things to avoid
 # potential problems when running as a daemon.
 #
-sub daemonize() {
+sub daemonize {
 
     my $logfile = $this_app->option('logfile');
 
@@ -498,7 +515,7 @@ sub daemonize() {
 #
 # Return value: 0 if success, else a non-zero value.
 #
-sub init_components() {
+sub init_components {
 
     # credentials are undefined
     my $cred = 0;
@@ -542,7 +559,7 @@ sub init_components() {
 #
 # Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
 #
-sub launch_ncd() {
+sub launch_ncd {
 
     my $result = 0;    # Assume success
 

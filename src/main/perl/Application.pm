@@ -45,7 +45,7 @@ use constant CDISPD_CONFIG_FILE => "/etc/ncm-cdispd.conf";
 # Public Methods/Functions for CAF
 #
 
-sub app_options() {
+sub app_options {
 
     my $self = shift;
 
