@@ -45,6 +45,13 @@
       <name>Michel Jouvin</name>
       <email>jouvin@lal.in2p3.fr</email>
     </developer>
+    <developer>
+      <name>Nick Williams</name>
+      <email>nick.williams@morganstanley.com</email>
+      <roles>
+	<role>developer</role>
+      </roles>
+    </developer>
   </developers>
 
   <contributors>
@@ -59,13 +66,6 @@
       <name>Marco Emilio Poleggi</name>
       <roles>
 	<role>author</role>
-      </roles>
-    </contributor>
-    <contributor>
-      <name>Nick Williams</name>
-      <email>nick.williams@morganstanley.com</email>
-      <roles>
-	<role>contributor</role>
       </roles>
     </contributor>
   </contributors>
