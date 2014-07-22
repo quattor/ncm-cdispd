@@ -29,14 +29,14 @@ unless ( $this_app = CDISPD::Application->new($0,[]) ) {
 my $config = get_config_for_profile("profile1");
 my $comp_config = $config->getElement(COMP_CONFIG_PATH)->getTree();
 my $component = 'named';
-is(CDISPD::Utils::is_active($comp_config,$component), 1, "Configuration module $component is active");
+ok(CDISPD::Utils::is_active($comp_config,$component), "Configuration module $component is active");
 $component = 'ldconf';
-is(CDISPD::Utils::is_active($comp_config,$component), 0, "Configuration module $component is not active");
+ok(!CDISPD::Utils::is_active($comp_config,$component), "Configuration module $component is not active");
 
 $config = get_config_for_profile("broken_profile");
 $comp_config = $config->getElement(COMP_CONFIG_PATH)->getTree();
 $component = 'named';
-is(CDISPD::Utils::is_active($comp_config,$component), 0, "Configuration module $component is not active");
+ok(!CDISPD::Utils::is_active($comp_config,$component), "Configuration module $component is not active");
 
 Test::NoWarnings::had_no_warnings();
 

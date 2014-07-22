@@ -35,26 +35,26 @@ my $comp_config_broken = $config_broken->getElement(COMP_CONFIG_PATH)->getTree()
 
 # Check 'named' component: no status change (active)
 my $component = 'named';
-is(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), 0, "$component: no status change");
+ok(!CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), "$component: no status change");
 
 # Check 'ldconf' component: status changed from inactive to active
 $component = 'ldconf';
-is(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), 1, "$component: status changed");
+ok(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), "$component: status changed");
 
 # Check 'grub' component: no status change (active)
 $component = 'grub';
-is(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), 0, "$component: no status change");
+ok(!CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), "$component: no status change");
 
 # Check 'ccm' component: status changed from active to inactive
 $component = 'ccm';
-is(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), 1, "$component: status changed");
+ok(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), "$component: status changed");
 
 
 # Check 'named' component with a broken profile (missing active property) either 
 # as the initial or the final profile.
 $component = 'named';
-is(CDISPD::Utils::changed_status($comp_config_broken,$comp_config_final,$component), 0, "$component: active property missing in initial profile");
-is(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_broken,$component), 0, "$component: active property missing in final profile");
+ok(!CDISPD::Utils::changed_status($comp_config_broken,$comp_config_final,$component), "$component: active property missing in initial profile");
+ok(!CDISPD::Utils::changed_status($comp_config_initial,$comp_config_broken,$component), "$component: active property missing in final profile");
 
 Test::NoWarnings::had_no_warnings();
 

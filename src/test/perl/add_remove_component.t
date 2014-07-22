@@ -100,4 +100,3 @@ is($this_app->{ICLIST}, undef, "ICLIST is empty");
 
 Test::NoWarnings::had_no_warnings();
 
-
