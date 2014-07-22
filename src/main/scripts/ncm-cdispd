@@ -312,7 +312,7 @@ sub process_signal () {
     $this_app->{WAITING_SIGNAL} = undef;
 
     if ( $signal eq 'HUP' ) {
-        signal_restart($signal);
+        signal_reinitialize($signal);
     } elsif ( $signal =~ /INT|TERM|QUIT/ ) {
         signal_terminate($signal);
     } else {
@@ -322,8 +322,7 @@ sub process_signal () {
 }
 
 #
-# Proccess signals INT, TERM and QUIT
-# they terminate cdispd daemon
+# Proccess signals INT, TERM and QUIT: terminate cdispd daemon
 #
 sub signal_terminate ($) {
 
@@ -337,28 +336,25 @@ sub signal_terminate ($) {
 }
 
 #
-# Proccess HUP signal,
-# that restarts cdispd daemon
+# Proccess HUP signal: reinitialize cdispd daemon
 #
-sub signal_restart ($) {
+sub signal_reinitialize ($) {
 
     my $signal = shift;
 
-    # ignore further signals
-    $SIG{'HUP'} = 'IGNORE';
+    $this_app->warn("signal handler: received signal: $signal");
+    $this_app->warn("reinitializing daemon...");
 
     # re-read config file
-    $this_app->{CONFIG}->file( $this_app->option('cfgfile') );
-
-    $this_app->warn("signal handler: received signal: $signal");
-    $this_app->warn('restarting daemon!');
+    $this_app->{CONFIG}->file($this_app->option('cfgfile'));
+    $this_app->warn("... daemon options reset to those in ".$this_app->option('cfgfile'));
 
     my $cred = 0;
     my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
-
     $this_app->{OLD_CFG}   = $cm->getLockedConfiguration($cred);
     $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
+    $this_app->warn("... previous profile set to last one");
 
     return;
 
