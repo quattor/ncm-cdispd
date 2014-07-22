@@ -392,13 +392,12 @@ sub changed_CPE($$$) {
 =cut
 
 sub compare_profiles() {
-
-    # does the path exist at all - avoid crash cdispd in weird configuration 
-    # situations this should never happen of course...
+    # Does the path exist at all? Avoid crashing cdispd in weird configuration. 
     my $old_comp_config;
     if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {
         $old_comp_config  = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH)->getTree();
     } else {
+        $this_app->error(COMP_CONFIG_PATH." missing in previous configuration: assume an empty previous configuration");
         $old_comp_config = ();
     }
 
@@ -419,46 +418,28 @@ sub compare_profiles() {
 
     # add to ICList those components that are new and active
     foreach my $component (keys(%$new_comp_config)) {
-        # Only add if component is active
-        if ( !exists($old_comp_config->{$component}) && is_active($new_comp_config,$component) ) {
-            $this_app->debug(2, "component $component: new and active" );
+        unless ( exists($old_comp_config->{$component}) ) {
+            $this_app->debug(2, "component $component: new, to be added if active" );
             add_component($new_comp_config,$component);
         }
     }
 
     # add to ICList those components whose status or
     # whose interested CPE's checksums have changed
-    foreach my $component (keys(%$old_comp_config)) {
-        next unless exists($new_comp_config->{$component});
-
+    foreach my $component (keys(%$new_comp_config)) {
         if ( changed_status($old_comp_config, $new_comp_config, $component) ) {
             # Only add if active
-            if ( is_active($new_comp_config, $component) ) {
-                $this_app->debug(2, "component $component: status changed" );
-                add_component($new_comp_config,$component);
-            }
+            $this_app->debug(2, "component $component: status changed" );
+            add_component($new_comp_config,$component);
             next;
         }
 
-        if ( !is_active($new_comp_config, $component ) ) {
-            if ( $this_app->option('state') ) {
-                my $file = "$this_app->option('state')/$component";
-                unlink($file)
-                  or $this_app->warn("Cannot remove state $file: $!");
-            }
-            $this_app->debug(2, "component $component is NOT active, skipping" );
-            next;
-        }
-        
-        $this_app->debug(2, "component $component is active checking CPE");
         if ( changed_CPE($old_comp_config, $new_comp_config, $component) ) {
-            $this_app->debug(2, "component $component: CPE changed");
+            $this_app->debug(2, "component $component: CPE list or configuration changed");
             add_component($new_comp_config,$component);
         } else {
-            $this_app->debug( 2, "component $component has not changed its CPE" );
+            $this_app->debug(2, "component $component: no change in CPE list or CPE configuration" );
         }
     }
-
-    return;
 }
 
