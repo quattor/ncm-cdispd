@@ -80,10 +80,10 @@ sub escape($)
     my @e_str;
 
     for my $c (@str) {
-      if ( $c !~ /\w/ ) {
-        $c = sprintf("_%2x",ord($c));
-      }
-      push @e_str, $c;
+        if ( $c !~ /\w/ ) {
+          $c = sprintf("_%2x",ord($c));
+        }
+        push @e_str, $c;
     }
 
     return join('',@e_str);
@@ -106,8 +106,6 @@ sub clean_ICList() {
 
     $this_app->debug(3, "cleaning IC list");
     $this_app->{ICLIST} = ();
-
-    return;
 
 }
 
@@ -138,7 +136,8 @@ sub remove_component($) {
 =item add_component ($comp_config, $component):int
 
  Add a new component to the list of components to be invoked by ncm-ncd ($this_app->{ICLIST}).
- Components whose property "dispatch" is false are ignored.
+ Components whose properties "dispatch" or "active" is false are ignored (inactive components
+ are never added).
 
  Arguments
     - $comp_config: a hash reference with the contents of /software/components
@@ -161,7 +160,7 @@ sub add_component($$) {
         }
     }
 
-    # Do no add an inactive component.
+    # Do not add an inactive component.
     unless ( is_active($comp_config,$component)) {
         return (0);
     }
@@ -172,17 +171,17 @@ sub add_component($$) {
     }
 
     if ( $comp_config->{$component}->{dispatch} ) {
-        unless ( grep $component eq $_, @{ $this_app->{ICLIST} } ) {
+        if ( grep $component eq $_, @{ $this_app->{ICLIST} } ) {
+            $this_app->verbose("component $component already in list");
+        } else {
             $this_app->report("component $component, marked to dispatch, added to list");
             push( @{ $this_app->{ICLIST} }, $component );
-        } else {
-            $this_app->report("component $component already in list");
         }
     } else {
         $this_app->debug(2, "component $component, marked to not dispatch, NOT added to list" );
     }
 
-    return 0;
+    return (0);
 
 }
 
@@ -193,8 +192,8 @@ sub add_component($$) {
  Check if the status (active/inactive) of a component has changed.
 
  Arguments:
-    - $old_cfg: a hash containing the previous configuration of components (/software/components)
-    - $new_hash: a has containing the new configuration of components (/software/components)
+    - $old_comp_config: a hash containing the previous configuration of components (/software/components)
+    - $new_comp_config: a has containing the new configuration of components (/software/components)
     - $component: component name
 
  Return value: a boolean true if the status changed to active, false otherwise
@@ -205,20 +204,22 @@ sub changed_status($$$) {
 
     my ($old_comp_config, $new_comp_config, $component) = @_;
 
-    unless ( defined($old_comp_config->{$component}->{active}) ) {
-        # this component is misconfigured, we do not want it to be called
-        $this_app->warn("component $component has no 'active' property defined in its old profile, status assumed unchanged");
-        return (0);
-    }
-
     unless ( defined($new_comp_config->{$component}->{active}) ) {
-        # this component is misconfigured, we do not want it to be called
+        # In the current profile, component is  misconfigured ('active' property is required):
+        # status assumed unchanged as the current profile is suspect.
         $this_app->warn("component $component has no 'active' property defined in its new profile, status assumed unchanged");
         return (0);
     }
 
+    unless ( defined($old_comp_config->{$component}->{active}) ) {
+        # In the old profile, component is  misconfigured ('active' property is required):
+        # assume status has changed to give an opportunity to fix the problem with current profile.
+        $this_app->warn("component $component has no 'active' property defined in its old profile, assume status has changed");
+        return (1);
+    }
+
     if ( $new_comp_config->{$component}->{active} == $old_comp_config->{$component}->{active} ) {
-        $this_app->debug(3, "component $component has not changed its status");
+        $this_app->debug(3, "component $component: status unchanged");
         return (0);
     };
 
@@ -258,7 +259,7 @@ sub is_active($$) {
     if ( $comp_config->{$component}->{active} ) {
         $this_app->debug(2, "component $component is active" );
     } else {
-        $this_app->debug(2, "component $component is NOT active" );    
+        $this_app->debug(2, "component $component is inactive" );    
     }
 
     return $comp_config->{$component}->{active};
@@ -443,3 +444,4 @@ sub compare_profiles() {
     }
 }
 
+1;
