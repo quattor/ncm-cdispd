@@ -256,9 +256,10 @@ use Readonly;
 
 use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
-use EDG::WP4::CCM::Path;
 use CDISPD::Application;
 use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component);
+
+use constant CONFIG_ROOT => "/";
 
 our $this_app;
 our %SIG;
@@ -302,10 +303,9 @@ sub signal_restart {
 
     my $cred = 0;
     my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
-    my $config_root = EDG::WP4::CCM::Path->new("/");
 
     $this_app->{OLD_CFG}   = $cm->getLockedConfiguration($cred);
-    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement($config_root)->getChecksum();
+    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
     return;
@@ -433,8 +433,7 @@ sub init_components() {
     }
 
     # current configuration profile is this one
-    my $config_root = EDG::WP4::CCM::Path->new("/");
-    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement($config_root)->getChecksum();
+    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
     return $status;
@@ -514,7 +513,7 @@ sub launch_ncd() {
 # cdispd main()
 #
 
-# minimal Path
+# Minimal path
 $ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/bin:/usr/sbin";
 
 umask(022);
@@ -556,7 +555,6 @@ $this_app->{ICLIST} = ();
 my $cred = 0;
 
 my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
-my $config_root = EDG::WP4::CCM::Path->new("/");
 
 # perform an initial call of all components
 $this_app->info( 'ncm-cdispd version '
@@ -596,7 +594,7 @@ while (1) {
     $this_app->info("new profile arrived, examining...");
 
     $this_app->{NEW_CFG}   = $cm->getLockedConfiguration($cred);
-    $this_app->{NEW_CKSUM} = $this_app->{NEW_CFG}->getElement($config_root)->getChecksum();
+    $this_app->{NEW_CKSUM} = $this_app->{NEW_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{NEW_CFID}  = $this_app->{NEW_CFG}->getConfigurationId();
     $this_app->debug( 3, "new profile cid=" . $this_app->{NEW_CFID} );
 
