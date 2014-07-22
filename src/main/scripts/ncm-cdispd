@@ -195,12 +195,22 @@ option. A default configuration file is found in /etc/ncm-cdispd.conf.
 
 =head1 SIGNAL HANDLING
 
-If a signal B<INT>, B<TERM> or B<QUIT> is received, cdispd will
-try to finish its execution gracefully and will report an error
-(return status: -1). If signal B<HUP> is received, cdispd will
-restart itself (note that in this case, all command line options
-will be ignored, and default values from configuration file will
-be used instead).
+ncm-cdispd handles four signals: B<INT>, B<TERM>, B<QUIT> and B<HUP>.
+All signals except B<HUP> cause ncm-cdispd to exit. B<HUP> causes
+ncm-cdispd to reinitialize (configuration reset to values in the configuration
+file and command line options ignored, reference profile set to last
+profile available).
+
+B<HUP> and B<TERM> signals are not processed immediately if they occur when `ncm-ncd` 
+is run but they are remembered and the relevant action is done at the end of
+ncm-ncd run. At any other moment, they are processed immediately.
+
+The delayed processing of `TERM` may lead to a suprising situation if you do a  
+restart (start + stop) when ncm-ncd is running: the new ncm-cdispd process is started
+before the current one is really stopped and you end up with 2 (or even more 
+depending on the number of restart you did!) ncm-cdispd process. In fact this is harmless because
+ncm-ncd creates a lock that forbid new processes to actually do anything until the original 
+one has exited, at the end of `ncm-ncd`.
 
 =head1 MORE INFORMATION
 
@@ -269,6 +279,40 @@ our %SIG;
 # Functions used by main function (main loop)
 ################################################
 
+
+#
+# Configure signal handling for delayed processing of some signals
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub delay_signals () {
+
+    $SIG{'INT'}  = \&signal_terminate;
+    $SIG{'TERM'} = \&register_signal;
+    $SIG{'QUIT'} = \&signal_terminate;
+    $SIG{'HUP'}  = \&register_signal;
+
+}
+
+#
+# Configure signal handling for immediate processing of all signals
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub immediate_signals () {
+
+    $SIG{'INT'}  = \&signal_terminate;
+    $SIG{'TERM'} = \&signal_terminate;
+    $SIG{'QUIT'} = \&signal_terminate;
+    $SIG{'HUP'}  = \&signal_reinitialize;
+
+}
 
 #
 # Keep track of the signal received but do not process it immediately.
@@ -494,6 +538,7 @@ sub init_components() {
 #
 # Launch the 'ncd' program, with the ncd arguments passed
 # to cdispd, and with the contents of @ICList as the component list.
+# Not that processing of some signals is delayed during ncm-ncd run.
 #
 # Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
 #
@@ -539,11 +584,20 @@ sub launch_ncd() {
         $this_app->info( "about to run: " . $cmd_line );
         my $verb = $cmd[0];
         if ( -x $verb ) {
-            my $errormsg =
-              CAF::Process->new( \@cmd, log => $this_app )->output();
+            # Delay processing of some signals
+            delay_signals();
+
+            # Execute ncm-ncd and report exit status
+            my $errormsg = CAF::Process->new( \@cmd, log => $this_app )->output();
             $result = $? >> 8;
             $this_app->info($errormsg);
             $this_app->info("ncm-ncd finished with status: $result");
+
+            # Process delayed signal if any and reestablish
+            # immediate processing of signals
+            process_signal();
+            immediate_signals();
+
         } else {
             $this_app->error("Command $verb not found");
             $result = 1;
@@ -588,13 +642,8 @@ if ( $this_app->option('quiet') ) {
 
 $this_app->debug( 1, "initializing program" );
 
-#
-# Handle signals properly
-#
-$SIG{'INT'}  = \&signal_terminate;
-$SIG{'TERM'} = \&register_signal;
-$SIG{'QUIT'} = \&signal_terminate;
-$SIG{'HUP'}  = \&register_signal;
+# Configure signal handling
+immediate_signals();
 
 # list of components to be invoked
 $this_app->{ICLIST} = ();
@@ -626,8 +675,6 @@ $this_app->debug( 1, "CID of reference configuration set to $ref_cid" );
 # wait for a new configuration profile
 
 while (1) {
-    # Process delayed signal if any
-    process_signal();
 
     # Wait for a new profile
     $this_app->debug( 1, "checking for new profiles ..." );
@@ -666,6 +713,10 @@ while (1) {
             # Not really needed when re-running after a previous run error 
             # (as ICList is not cleared) but harmless
             compare_profiles();
+
+            # Run ncm-ncd and check status.
+            # If ncm-ncd returned an error, do not update the reference configuration to be used
+            # next time: this will force any component with errors to run again.
             $ncd_status = launch_ncd();
             $this_app->debug( 1, "launch_ncd() exit status = $ncd_status" );
             unless ($ncd_status) {
@@ -675,8 +726,6 @@ while (1) {
                 $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
                 $last_ncd_status       = 0;
             } else {
-                # neither forgotten nor forgiven:
-                # do not update reference configuration if ncm-ncd execution reported errors.
                 $this_app->debug( 1, "ncm-ncd reported errors: base configuration kept at CID $ref_cid");
                 $last_ncd_status = $ncd_status;
             }
