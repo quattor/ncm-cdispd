@@ -269,11 +269,63 @@ our %SIG;
 # Functions used by main function (main loop)
 ################################################
 
+
+#
+# Keep track of the signal received but do not process it immediately.
+# This is used to postpone signal processing during the exeuction of
+# ncm-ncd.
+#
+# Arguments
+#    - Signal to register
+#
+# Return value: none
+#
+
+sub register_signal ($) {
+
+    my $signal = shift;
+    $this_app->{WAITING_SIGNAL} = $signal;
+    $this_app->debug(1,"Signal $signal registered for delayed processing");
+
+}
+
+#
+# Process a delayed signal.
+# This function does nothing if called when there is no delayed signaled.
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub process_signal () {
+
+    unless ( $this_app->{WAITING_SIGNAL} ) {
+        $this_app->debug(1,"process_signal(): no delayed signal to process");
+        return;
+    }
+
+    $this_app->debug(1,"process_signal(): processing delayed signal ".$this_app->{WAITING_SIGNAL});
+
+    # Reset the delayed signal first
+    my $signal = $this_app->{WAITING_SIGNAL};
+    $this_app->{WAITING_SIGNAL} = undef;
+
+    if ( $signal eq 'HUP' ) {
+        signal_restart($signal);
+    } elsif ( $signal =~ /INT|TERM|QUIT/ ) {
+        signal_terminate($signal);
+    } else {
+        $this_app->error("Unsupported delayed signal $signal");
+    };
+
+}
+
 #
 # Proccess signals INT, TERM and QUIT
 # they terminate cdispd daemon
 #
-sub signal_terminate {
+sub signal_terminate ($) {
 
     my $signal = shift;
 
@@ -288,7 +340,7 @@ sub signal_terminate {
 # Proccess HUP signal,
 # that restarts cdispd daemon
 #
-sub signal_restart {
+sub signal_restart ($) {
 
     my $signal = shift;
 
@@ -316,7 +368,7 @@ sub signal_restart {
 # Exception handling
 # Use of LC::Exception with CAF
 #
-sub exception_handler {
+sub exception_handler ($$) {
 
     my ( $ec, $e ) = @_;
 
@@ -544,9 +596,9 @@ $this_app->debug( 1, "initializing program" );
 # Handle signals properly
 #
 $SIG{'INT'}  = \&signal_terminate;
-$SIG{'TERM'} = \&signal_terminate;
+$SIG{'TERM'} = \&register_signal;
 $SIG{'QUIT'} = \&signal_terminate;
-$SIG{'HUP'}  = 'IGNORE';
+$SIG{'HUP'}  = \&register_signal;
 
 # list of components to be invoked
 $this_app->{ICLIST} = ();
@@ -578,11 +630,10 @@ $this_app->debug( 1, "CID of reference configuration set to $ref_cid" );
 # wait for a new configuration profile
 
 while (1) {
+    # Process delayed signal if any
+    process_signal();
 
-    # re-starting cdispd daemon with a HUP signal
-    # is only allowed during sleeping time
-    $SIG{'HUP'} = 'IGNORE';
-
+    # Wait for a new profile
     $this_app->debug( 1, "checking for new profiles ..." );
     $this_app->debug( 3, "CID of last profile processed: " . $this_app->{OLD_CFID} );
 
@@ -642,9 +693,6 @@ while (1) {
     }
 
     $this_app->{OLD_CFID} = $this_app->{NEW_CFID};
-
-    # now we can signal to restart the daemon
-    $SIG{'HUP'} = \&signal_restart;
 
 }
 
