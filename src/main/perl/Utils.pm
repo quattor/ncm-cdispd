@@ -44,7 +44,7 @@ use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
 use EDG::WP4::CCM::Path;
 
-our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component);
+our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
 our $this_app;
 
 *this_app = \$main::this_app;

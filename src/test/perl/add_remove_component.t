@@ -86,7 +86,7 @@ is($iclist_length, 1, "ICLIST has $iclist_length component");
 is($this_app->{ICLIST}[0], $component2, "ICLIST contains '$component2'");
 
 # Clear ICLIST and check there is nothing left
-CDISPD::Utils::clean_ICList();
+clean_ICList();
 is($this_app->{ICLIST}, undef, "ICLIST is empty");
 
 # Attempt to add a broken component (dispatch property missing):

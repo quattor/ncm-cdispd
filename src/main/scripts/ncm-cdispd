@@ -257,7 +257,7 @@ use Readonly;
 use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
 use CDISPD::Application;
-use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component);
+use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
 
 use constant CONFIG_ROOT => "/";
 
