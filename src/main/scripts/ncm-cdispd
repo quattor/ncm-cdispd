@@ -271,6 +271,13 @@ use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICLis
 
 use constant CONFIG_ROOT => "/";
 
+# Verbosity level at which ncm-ncd output will be logged.
+# Can be info, verbose or debug.
+Readonly my $NCD_OUTPUT_LOG_LEVEL => 'debug';
+# When log level is debug, debug level to use
+Readonly my $NCD_OUTPUT_DEBUG_LEVEL => 1;
+my $log_ncd_output = 0;
+
 our $this_app;
 our %SIG;
 
@@ -549,6 +556,34 @@ sub init_components {
 
 }
 
+#
+# log_ncd_output($output):none
+#
+# This function takes care of logging ncm-ncd output that is received
+# as a multiline string. The string is splitted in several lines first
+# in order for the output to be logged as multiple lines by syslog.
+#
+# ncm-ncd output is logged only in debug mode as it duplicates information
+# already logged to configuration module log files and to syslog
+#
+# Arguments:
+#    - $output: a string containing ncm-ncd output
+#
+# Return value: none
+#
+
+sub log_ncd_output {
+
+    my $output = shift;
+    my @strs = split /\n/, $output;
+
+    foreach my $line (@strs) {
+        # When loging as debug information, first parameter must be the debug level
+        my $debug_level = ($NCD_OUTPUT_LOG_LEVEL eq 'debug') ? $NCD_OUTPUT_DEBUG_LEVEL : "";
+        $this_app->$NCD_OUTPUT_LOG_LEVEL($debug_level, $line);
+    }
+
+}
 
 #
 # launch_ncd()
@@ -607,8 +642,14 @@ sub launch_ncd {
             # Execute ncm-ncd and report exit status
             my $errormsg = CAF::Process->new( \@cmd, log => $this_app )->output();
             $result = $? >> 8;
-            $this_app->info($errormsg);
-            $this_app->info("ncm-ncd finished with status: $result");
+            # Only log ncm-ncd output in debug mode as this duplicates information
+            # already logged to configuration module log files and to syslog
+            log_ncd_output($errormsg) if $log_ncd_output;
+            if ( $? ) {
+                $this_app->info("ncm-ncd finished with status: $result (some configuration modules failed to run successfully)");
+            } else {
+                $this_app->info("ncm-ncd finished with status: $result (all configuration modules ran successfully)");
+            }
 
             # Process delayed signal if any and reestablish
             # immediate processing of signals
@@ -642,6 +683,11 @@ umask(022);
 #
 unless ( $this_app = CDISPD::Application->new( $0, @ARGV ) ) {
     throw_error("cannot start application");
+}
+if ( $NCD_OUTPUT_LOG_LEVEL eq 'info' ) {
+    $log_ncd_output = 1;
+} else {
+    $log_ncd_output = $this_app->option($NCD_OUTPUT_LOG_LEVEL);
 }
 
 #
