@@ -577,10 +577,20 @@ sub log_ncd_output {
     my $output = shift;
     my @strs = split /\n/, $output;
 
+    # If there are many lines, we need to sleep periodically to
+    # avoid lines to be discarded by the rsyslog rate limiter
+    # (default rate limit is 200 messages per 5s).
+    use constant RSYSLOG_MAX_LINES => 30;
+    my $i = RSYSLOG_MAX_LINES;
     foreach my $line (@strs) {
         # When loging as debug information, first parameter must be the debug level
         my $debug_level = ($NCD_OUTPUT_LOG_LEVEL eq 'debug') ? $NCD_OUTPUT_DEBUG_LEVEL : "";
         $this_app->$NCD_OUTPUT_LOG_LEVEL($debug_level, $line);
+        if ( $i == 0 ) {
+            sleep 1 if $log_ncd_output;
+            $i = RSYSLOG_MAX_LINES;
+        }
+        $i--;
     }
 
 }
