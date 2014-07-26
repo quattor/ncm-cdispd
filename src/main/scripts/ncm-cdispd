@@ -195,12 +195,22 @@ option. A default configuration file is found in /etc/ncm-cdispd.conf.
 
 =head1 SIGNAL HANDLING
 
-If a signal B<INT>, B<TERM> or B<QUIT> is received, cdispd will
-try to finish its execution gracefully and will report an error
-(return status: -1). If signal B<HUP> is received, cdispd will
-restart itself (note that in this case, all command line options
-will be ignored, and default values from configuration file will
-be used instead).
+ncm-cdispd handles four signals: B<INT>, B<TERM>, B<QUIT> and B<HUP>.
+All signals except B<HUP> cause ncm-cdispd to exit. B<HUP> causes
+ncm-cdispd to reinitialize (configuration reset to values in the configuration
+file and command line options ignored, reference profile set to last
+profile available).
+
+B<HUP> and B<TERM> signals are not processed immediately if they occur when `ncm-ncd` 
+is run but they are remembered and the relevant action is done at the end of
+ncm-ncd run. At any other moment, they are processed immediately.
+
+The delayed processing of `TERM` may lead to a suprising situation if you do a  
+restart (start + stop) when ncm-ncd is running: the new ncm-cdispd process is started
+before the current one is really stopped and you end up with 2 (or even more 
+depending on the number of restart you did!) ncm-cdispd process. In fact this is harmless because
+ncm-ncd creates a lock that forbid new processes to actually do anything until the original 
+one has exited, at the end of `ncm-ncd`.
 
 =head1 MORE INFORMATION
 
@@ -237,200 +247,148 @@ BEGIN {
 
 }
 
-#------------------------------------------------------------
-# Application
-#------------------------------------------------------------
-
-package cdispd;
-
-use CAF::Application;
-use CAF::Reporter;
-use CAF::Process;
-use LC::Exception qw (SUCCESS throw_error);
-
-use strict;
-use vars qw(@ISA);
-
-@ISA = qw(CAF::Application CAF::Reporter);
-
-#
-# Public Methods/Functions for CAF
-#
-
-sub app_options() {
-
-    # these options complement the ones defined in CAF::Application
-    push(
-        my @array,
-
-        # cdispd specific options
-
-        {
-            NAME => 'interval=i',
-            HELP => 'time (in seconds) between checks for new'
-              . ' configuration profiles',
-            DEFAULT => 60
-        },
-
-        {
-            NAME    => 'cache_root=s',
-            HELP    => 'cache root directory',
-            DEFAULT => undef
-        },
-
-        {
-            NAME    => 'ncd-retries=i',
-            HELP    => 'number of retries if ncd is locked',
-            DEFAULT => undef
-        },
-
-        {
-            NAME    => 'ncd-timeout=i',
-            HELP    => 'time in seconds between retries',
-            DEFAULT => undef
-        },
-
-        {
-            NAME    => 'ncd-useprofile=s',
-            HELP    => 'profile to use as configuration profile',
-            DEFAULT => undef
-        },
-
-        # cdispd and ncd common options
-
-        {
-            NAME    => 'state=s',
-            HELP    => 'directory in which to place state files',
-            DEFAULT => undef
-        },
-
-        {
-            NAME    => 'logfile=s',
-            HELP    => 'path/filename to use for cdispd logs',
-            DEFAULT => '/var/log/ncm-cdispd.log'
-        },
-
-        {
-            NAME    => 'cfgfile=s',
-            HELP    => 'configuration file for cdispd defaults',
-            DEFAULT => '/etc/ncm-cdispd.conf'
-        },
-
-        {
-            NAME    => 'noaction',
-            HELP    => 'do not actually perform operations',
-            DEFAULT => undef
-        },
-
-        {
-            NAME    => 'facility=s',
-            HELP    => 'facility name for syslog',
-            DEFAULT => 'local1'
-        },
-
-        # become a daemon option
-
-        {
-            NAME    => 'quiet|D',
-            HELP    => 'becomes a daemon and suppress application outputs',
-            DEFAULT => 0
-        },
-
-        # write process id to file
-
-        {
-            NAME    => 'pidfile=s',
-            HELP    => 'write PID to this file path',
-            DEFAULT => '/var/run/ncm-cdispd.pid'
-        },
-
-        # do not autoregister the paths of components
-
-        {
-            NAME    => 'noautoregcomp',
-            HELP    => 'do not autoregister the paths  of components',
-            DEFAULT => 0
-        },
-
-        # do not autoregister the paths of component package
-
-        {
-            NAME    => 'noautoregpkg',
-            HELP    => 'do not autoregister the paths of component package',
-            DEFAULT => 0
-        }
-    );
-
-    return \@array;
-
-}
-
-sub _initialize {
-
-    my $self = shift;
-
-    #
-    # define application specific data.
-    #
-
-    # external version number
-    $self->{'VERSION'} = '${project.artifactId}';
-
-    # show setup text
-    $self->{'USAGE'} = "Usage: cdispd [options]\n";
-
-    #
-    # log file policies
-    #
-
-    # append to logfile, do not truncate
-    $self->{'LOG_APPEND'} = 1;
-
-    # add time stamp before every entry in log
-    $self->{'LOG_TSTAMP'} = 1;
-
-    #
-    # start initialization of CAF::Application
-    #
-    unless ( $self->SUPER::_initialize(@_) ) {
-        return undef;
-    }
-
-    # start using log file
-    $self->set_report_logfile( $self->{'LOG'} );
-
-    return SUCCESS;
-
-}
 
 #############################################################
-# cdispd main program
+# cdispd program and its functions
+#
+# Note about debug level used:
+#    - level 1: main loop and initialization
+#    - level 2: compare_profiles() and add_component()
+#    - level 3: utility functions used to compare profiles
+#               (very verbose!)
 #############################################################
 
 package main;
 
 use strict;
 use POSIX qw(setsid);
+use Readonly;
 
-use LC::Exception qw (SUCCESS throw_error);
+use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
-use EDG::WP4::CCM::Path;
+use CDISPD::Application;
+use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
 
-use vars qw($this_app %SIG);
+use constant CONFIG_ROOT => "/";
 
-#------------------------------------------------------------
-# Functions in the main program
-#------------------------------------------------------------
+# Verbosity level at which ncm-ncd output will be logged.
+# Can be info, verbose or debug.
+Readonly my $NCD_OUTPUT_LOG_LEVEL => 'debug';
+# When log level is debug, debug level to use
+Readonly my $NCD_OUTPUT_DEBUG_LEVEL => 1;
+my $log_ncd_output = 0;
+
+our $this_app;
+our %SIG;
+
+
+################################################
+# Functions used by main function (main loop)
+################################################
+
 
 #
-# Proccess signals INT, TERM and QUIT
-# they terminate cdispd daemon
+# Configure signal handling for delayed processing of some signals
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub delay_signals {
+
+    $SIG{'INT'}  = \&signal_terminate;
+    $SIG{'TERM'} = \&register_signal;
+    $SIG{'QUIT'} = \&signal_terminate;
+    $SIG{'HUP'}  = \&register_signal;
+
+}
+
+#
+# Configure signal handling for immediate processing of all signals
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub immediate_signals {
+
+    $SIG{'INT'}  = \&signal_terminate;
+    $SIG{'TERM'} = \&signal_terminate;
+    $SIG{'QUIT'} = \&signal_terminate;
+    $SIG{'HUP'}  = \&signal_reinitialize;
+
+}
+
+#
+# Keep track of the signal received but do not process it immediately.
+# This is used to postpone signal processing during the exeuction of
+# ncm-ncd.
+#
+# Arguments
+#    - Signal to register
+#
+# Return value: none
+#
+
+sub register_signal {
+
+    my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("register_signal(): missing argument");
+        return;
+    }
+
+    $this_app->{WAITING_SIGNAL} = $signal;
+    $this_app->debug(1,"Signal $signal registered for delayed processing");
+
+}
+
+#
+# Process a delayed signal.
+# This function does nothing if called when there is no delayed signaled.
+#
+# Arguments: none
+#
+# Return value: none
+#
+
+sub process_signal {
+
+    unless ( $this_app->{WAITING_SIGNAL} ) {
+        $this_app->debug(1,"process_signal(): no delayed signal to process");
+        return;
+    }
+
+    $this_app->debug(1,"process_signal(): processing delayed signal ".$this_app->{WAITING_SIGNAL});
+
+    # Reset the delayed signal first
+    my $signal = $this_app->{WAITING_SIGNAL};
+    $this_app->{WAITING_SIGNAL} = undef;
+
+    if ( $signal eq 'HUP' ) {
+        signal_reinitialize($signal);
+    } elsif ( $signal =~ /INT|TERM|QUIT/ ) {
+        signal_terminate($signal);
+    } else {
+        $this_app->error("Unsupported delayed signal $signal");
+    };
+
+}
+
+#
+# Proccess signals INT, TERM and QUIT: terminate cdispd daemon
 #
 sub signal_terminate {
 
     my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("signal_terminate(): missing argument");
+        return;
+    }
 
-    $this_app->warn( 'signal handler: received signal: ' . $signal );
+    $this_app->warn("signal handler: received signal: $signal");
     $this_app->warn('terminating ncm-cdispd...');
 
     exit(-1);
@@ -438,32 +396,29 @@ sub signal_terminate {
 }
 
 #
-# Proccess HUP signal,
-# that restarts cdispd daemon
+# Proccess HUP signal: reinitialize cdispd daemon
 #
-sub signal_restart {
-
-    my ( $cred, $cm, $path );
+sub signal_reinitialize {
 
     my $signal = shift;
+    unless ( $signal ) {
+        $this_app->error("signal_reinitialize(): missing argument");
+        return;
+    }
 
-    # ignore further signals
-    $SIG{'HUP'} = 'IGNORE';
+    $this_app->warn("signal handler: received signal: $signal");
+    $this_app->warn("reinitializing daemon...");
 
     # re-read config file
-    $this_app->{CONFIG}->file( $this_app->option('cfgfile') );
+    $this_app->{CONFIG}->file($this_app->option('cfgfile'));
+    $this_app->warn("... daemon options reset to those in ".$this_app->option('cfgfile'));
 
-    $this_app->warn( 'signal handler: received signal: ' . $signal );
-    $this_app->warn('restarting daemon!');
-
-    $cred = 0;
-    $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
-    $path = EDG::WP4::CCM::Path->new("/");
-
+    my $cred = 0;
+    my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
     $this_app->{OLD_CFG}   = $cm->getLockedConfiguration($cred);
-    $this_app->{OLD_ELE}   = $this_app->{OLD_CFG}->getElement($path);
-    $this_app->{OLD_CKSUM} = $this_app->{OLD_ELE}->getChecksum();
+    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
+    $this_app->warn("... previous profile set to last one");
 
     return;
 
@@ -476,6 +431,10 @@ sub signal_restart {
 sub exception_handler {
 
     my ( $ec, $e ) = @_;
+    unless ( $ec && $e ) {
+        $this_app->error("exception_handler(): missing argument");
+        return;
+    }
 
     $this_app->error("fatal exception:");
     $this_app->error( $e->text );
@@ -495,11 +454,9 @@ sub exception_handler {
 # Become a daemon. Perform a couple of things to avoid
 # potential problems when running as a daemon.
 #
-sub daemonize() {
+sub daemonize {
 
-    my ( $pid, $logfile );
-
-    $logfile = $this_app->option('logfile');
+    my $logfile = $this_app->option('logfile');
 
     if ( !chdir('/') ) {
         $this_app->error("Can't chdir to /: $! : Exiting");
@@ -521,7 +478,7 @@ sub daemonize() {
         exit(-1);
     }
 
-    $pid = fork();
+    my $pid = fork();
     if ( !defined($pid) ) {
         $this_app->error("Can't fork: $! : Exiting");
         exit(-1);
@@ -559,16 +516,18 @@ sub daemonize() {
 #
 # init_components()
 #
-# Perform an initial call of all components (with dispatch=true)
+# Perform an initial call of all components with dispatch property = true
 #
-# Returns 0 if success, else a non-zero value.
+# Arguments: none
 #
-sub init_components() {
+# Return value: 0 if success, else a non-zero value.
+#
+sub init_components {
 
     # credentials are undefined
     my $cred = 0;
 
-    my $cm = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
+    my $cm = EDG::WP4::CCM::CacheManager->new($this_app->option('cache_root'));
     $this_app->{OLD_CFG} = $cm->getLockedConfiguration($cred);
 
     #
@@ -576,34 +535,21 @@ sub init_components() {
     #
 
     my $status = 0;   # Assume success
-    my $path  = "/software/components";
-    if ( $this_app->{OLD_CFG}->elementExists($path) ) {
-        my $ele = $this_app->{OLD_CFG}->getElement($path);
+    if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {
+        my $comp_config = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH)->getTree();
 
-        my %hash = $ele->getHash();
-        foreach my $key ( keys(%hash) ) {
-
-            $this_app->debug(2, "checking component $key" );
-
-            if ( is_active( $this_app->{OLD_CFG}, $hash{$key}->getPath() ) ) {
-                $this_app->debug(2, "component $key is active" );
-                add_component( $hash{$key} );
-            }
-            else {
-                $this_app->debug(2, "component $key is NOT active" );
-            }
+        foreach my $component (keys(%$comp_config)) {
+            $this_app->debug(2, "Adding component $component if it is eligible to run");
+            add_component($comp_config,$component);
         }
         $status = launch_ncd();
-    }
-    else {
+    } else {
         $status = 1;
-        $this_app->status("Path $path is not defined: no components to configure");
+        $this_app->status("Path ".COMP_CONFIG_PATH." is not defined: no components to configure");
     }
 
     # current configuration profile is this one
-    $path                  = EDG::WP4::CCM::Path->new("/");
-    $this_app->{OLD_ELE}   = $this_app->{OLD_CFG}->getElement($path);
-    $this_app->{OLD_CKSUM} = $this_app->{OLD_ELE}->getChecksum();
+    $this_app->{OLD_CKSUM} = $this_app->{OLD_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
     return $status;
@@ -611,393 +557,41 @@ sub init_components() {
 }
 
 #
-# clean_ICList()
+# log_ncd_output($output):none
 #
-# Empty the list of interested components
+# This function takes care of logging ncm-ncd output that is received
+# as a multiline string. The string is splitted in several lines first
+# in order for the output to be logged as multiple lines by syslog.
 #
-sub clean_ICList() {
-
-    $this_app->debug( 3, "cleaning IC list" );
-    $this_app->{ICLIST} = ();
-
-    return;
-
-}
-
+# ncm-ncd output is logged only in debug mode as it duplicates information
+# already logged to configuration module log files and to syslog
 #
-# remove_component( $element )
+# Arguments:
+#    - $output: a string containing ncm-ncd output
 #
-# Remove a component from @ICLIST if present.
+# Return value: none
 #
-sub remove_component($) {
-    my $comp = shift;
-    
-    $this_app->debug(3,"Removing component $comp from ICLIST");
-    @{$this_app->{ICLIST}} = grep ($_ ne $comp, @{$this_app->{ICLIST}});
-    
-    return;
-}
 
-#
-# add_component( $element )
-#
-# Add a new component to the list of components to
-# be invoked by ncd (@ICLIST)
-# Those components marked with "dispatch = false"
-# will be ignored
-#
-sub add_component($) {
+sub log_ncd_output {
 
-    my ( $ele,          $path,    $comp );
-    my ( %new_ele_hash, $new_ele, $disp );
+    my $output = shift;
+    my @strs = split /\n/, $output;
 
-    $ele  = shift;
-    $path = $ele->getPath();
-    $comp = $path->up();
-
-    if ( $this_app->option('state') ) {
-        my $file = $this_app->option('state') . '/' . $comp;
-        if ( open( TOUCH, ">$file" ) ) {
-            close(TOUCH);
-        } else {
-            $this_app->warn("Cannot update state for $file: $!");
+    # If there are many lines, we need to sleep periodically to
+    # avoid lines to be discarded by the rsyslog rate limiter
+    # (default rate limit is 200 messages per 5s).
+    use constant RSYSLOG_MAX_LINES => 30;
+    my $i = RSYSLOG_MAX_LINES;
+    foreach my $line (@strs) {
+        # When loging as debug information, first parameter must be the debug level
+        my $debug_level = ($NCD_OUTPUT_LOG_LEVEL eq 'debug') ? $NCD_OUTPUT_DEBUG_LEVEL : "";
+        $this_app->$NCD_OUTPUT_LOG_LEVEL($debug_level, $line);
+        if ( $i == 0 ) {
+            sleep 1 if $log_ncd_output;
+            $i = RSYSLOG_MAX_LINES;
         }
+        $i--;
     }
-
-    %new_ele_hash = $ele->getHash();
-    $new_ele      = $new_ele_hash{"dispatch"};
-    if ( !defined($new_ele) ) {
-        $this_app->info("No dispatch flag defined for component $comp, not added to list");
-        return (0);
-    }
-
-    $disp = $new_ele->getValue();
-    $disp =~ tr/A-Z/a-z/;
-
-    if ( $disp eq "true" ) {
-        unless ( grep $comp eq $_, @{ $this_app->{ICLIST} } ) {
-            $this_app->report("component $comp, marked to dispatch, added to list");
-            push( @{ $this_app->{ICLIST} }, $comp );
-        }
-        else {
-            $this_app->report("component $comp already in list");
-        }
-    } else {
-        $this_app->debug( 3, "component $comp, marked to not dispatch, NOT added to list" );
-    }
-
-    return SUCCESS;
-
-}
-
-#
-# changed_status ($old_cfg, $new_cfg, $path)
-#
-# Check if the status of the component has changed
-#
-# Given two versions of a profile and a component,
-# check if the status of the component has changed
-#
-sub changed_status($$$) {
-
-    my ( $old_cfg, $old_act );
-    my ( $new_cfg, $new_act );
-    my ( $path,    $name );
-
-    $old_cfg = shift;
-    $new_cfg = shift;
-    $path    = shift;
-
-    $name = $old_cfg->getElement($path)->getName();
-    $path->down("active");
-
-    if (   !EDG::WP4::CCM::Element->elementExists( $old_cfg, $path )
-        || !EDG::WP4::CCM::Element->elementExists( $new_cfg, $path ) )
-    {
-
-        # this componet is missconfigured,
-        # we do not want it to be called
-        $this_app->info("component $name has no \"active\" property");
-        $this_app->debug( 3, "path $path does not exists in profile" );
-        return (0);
-    }
-
-    $old_act = $old_cfg->getElement($path)->getValue();
-    $old_act =~ tr/A-Z/a-z/;
-    $new_act = $new_cfg->getElement($path)->getValue();
-    $new_act =~ tr/A-Z/a-z/;
-
-    if ( $old_act eq "false" and $new_act eq "true" ) {
-        $this_app->debug( 3,
-                "component " 
-              . $name
-              . " has changed status from NOT active to active" );
-        return (1);
-    } elsif ( $old_act eq "true" and $new_act eq "false" ) {
-        $this_app->debug( 3,
-                "component " 
-              . $name
-              . " has changed status from active to NOT active" );
-        return (0);    # do not invoke it if it becomes not active!
-    } else {
-        $this_app->debug( 3, "component " . $name . " has not changed its status" );
-    }
-
-    return (0);
-
-}
-
-#
-# is_active ($cfg, $path)
-#
-# Check if the status of the component is Active
-#
-sub is_active($$) {
-
-    my ( $cfg,  $act );
-    my ( $path, $name );
-
-    $cfg  = shift;
-    $path = shift;
-
-    $name = $cfg->getElement($path)->getName();
-    $path->down("active");
-
-    if ( !EDG::WP4::CCM::Element->elementExists( $cfg, $path ) ) {
-
-        # this componet is misconfigured,
-        # we do not want it to be called
-        $this_app->info("component $name has no \"active\" property");
-        $this_app->debug( 3, "path $path does not exists in profile" );
-        return (0);
-    }
-
-    $act = $cfg->getElement($path)->getValue();
-    $act =~ tr/A-Z/a-z/;
-
-    if ( $act eq "true" ) {
-        $this_app->debug( 3, "component $name is active" );
-        return (1);
-    }
-
-    $this_app->debug( 3, "component $name is NOT active" );
-
-    return (0);
-
-}
-
-#
-# get_CPE ($cfg, $path)
-#
-# Return a @list of CPEs (string with paths) of a
-# component (given by its $path) in the configuration $cfg
-#
-# It will add the component's path and the components package's path to CPE
-# unless options --noautoregcomp or --noautoregpkg are specified
-#
-sub get_CPE($$) {
-
-    my ( $cfg, $path, $strpath, $resource, $element );
-    my (@list);
-
-    $cfg  = shift;
-    $path = shift;
-
-    @list = ();
-
-    #
-    # add component path inconditionally to @list
-    # check the option for auto-registration of components
-    #
-    if ( !$this_app->option('noautoregcomp') ) {
-        $strpath = $path->toString();
-        $this_app->debug( 4, "add $strpath to CPE list" );
-        push( @list, $strpath );
-    }
-
-    #
-    # add the component package to @list
-    # check the option for auto-registration of packages
-    #
-    if ( !$this_app->option('noautoregpkg') ) {
-        $element = $cfg->getElement($path);
-        $strpath = "/software/packages/ncm_2d" . $element->getName();
-        $this_app->debug( 4, "add $strpath to CPE list" );
-        push( @list, $strpath );
-    }
-
-    #
-    # add the list of registered changes
-    #
-    $path->down("register_change");
-
-    if ( EDG::WP4::CCM::Element->elementExists( $cfg, $path ) ) {
-
-        $resource = $cfg->getElement($path);
-
-        while ( $resource->hasNextElement() ) {
-            $element = $resource->getNextElement();
-            $strpath = $element->getValue();
-            $this_app->debug( 4, "add $strpath to CPE list" );
-            push( @list, $strpath );
-        }
-
-    }
-
-    return (@list);
-
-}
-
-#
-# changed_CPE ($old_cfg, $new_cfg, $path)
-#
-# Check if the list of interested CPE has changed
-#
-# Given two versions of a profile and a component,
-# check if the list of interested Configuration
-# Profile Entries (CPE) of this component has changed.
-#
-sub changed_CPE($$$) {
-
-    my ( $old_cfg, $old_ele, $old_cksum );
-    my ( $new_cfg, $new_ele, $new_cksum );
-    my ( $path,    $element, $resource, @list );
-    my ($mypath);
-
-    $old_cfg = shift;
-    $new_cfg = shift;
-    $path    = shift;
-
-    $this_app->debug( 3, "test CPE for " . $path->toString() );
-
-    @list = get_CPE( $new_cfg, $path );
-
-    foreach $mypath (@list) {
-
-        if ( !EDG::WP4::CCM::Element->elementExists( $old_cfg, $mypath ) ) {
-
-            # it could be a new entry on the profile tree
-            return (1);
-        }
-
-        if ( !EDG::WP4::CCM::Element->elementExists( $new_cfg, $mypath ) ) {
-
-            # this componet is missconfigured,
-            # we do not want it to be called
-            $this_app->error( "the component "
-                  . $path->toString()
-                  . " has registered to non existant path $mypath" );
-            return (0);
-        }
-
-        $old_ele = $old_cfg->getElement($mypath);
-        $new_ele = $new_cfg->getElement($mypath);
-
-        $old_cksum = $old_ele->getChecksum();
-        $new_cksum = $new_ele->getChecksum();
-
-        if ( $old_cksum ne $new_cksum ) {
-            $this_app->debug( 3, "element " . $mypath . " has changed" );
-            return (1);
-        }
-
-    }
-
-    return (0);
-
-}
-
-#
-# compare_profiles()
-#
-# Compare two profiles
-#
-# Given two profiles, search for the differences, and fill in
-# the array ICLIST with the list of components to be called
-# for re-configurations
-#
-sub compare_profiles() {
-
-    my ($old_ele,  %old_hash);
-    my ($new_ele,  %new_hash);
-
-    # get the list of components
-    my $old_cfg = $this_app->{OLD_CFG};
-    my $new_cfg = $this_app->{NEW_CFG};
-
-    my $path = "/software/components";
-
-    # does the path exist at all - avoid crash cdispd in weird configuration 
-    # situations this should never happen of course...
-    if ( $old_cfg->elementExists($path) ) {
-        $old_ele  = $old_cfg->getElement($path);
-        %old_hash = $old_ele->getHash();
-    } else {
-        $old_ele  = undef;
-        %old_hash = ();
-    }
-
-    if ( $new_cfg->elementExists($path) ) {
-        $new_ele  = $new_cfg->getElement($path);
-        %new_hash = $new_ele->getHash();
-    } else {
-        $this_app->error("new configuration has no $path path defined!!");
-        $new_ele  = undef;
-        %new_hash = ();
-    }
-
-    # Remove from ICLIST those components that have been removed
-    foreach my $key (keys(%old_hash)) {
-        if (!exists($new_hash{$key})) {
-            remove_component($key);
-        }
-    }
-
-    # add to ICList those components that are new and active
-    foreach my $key ( keys(%new_hash) ) {
-        # Only add if component is active
-        if ( !exists( $old_hash{$key} ) && is_active( $new_cfg, $new_hash{$key}->getPath() ) ) {
-            $this_app->debug( 2, "component $key: new and active" );
-            add_component( $new_hash{$key} );
-        }
-    }
-
-    # add to ICList those components whose status or
-    # whose interested CPE's checksums have changed
-    foreach my $key ( keys(%old_hash) ) {
-
-        next if ( !exists( $new_hash{$key} ) );
-
-        if ( changed_status( $old_cfg, $new_cfg, $old_hash{$key}->getPath() ) ) {
-            # Only add if active
-            if ( is_active( $new_cfg, $old_hash{$key}->getPath() ) ) {
-                $this_app->debug( 2, "component $key: status changed" );
-                add_component( $new_hash{$key} );
-            }
-            next;
-        }
-
-        if ( !is_active( $new_cfg, $old_hash{$key}->getPath() ) ) {
-            if ( $this_app->option('state') ) {
-                my $file = $this_app->option('state') . '/' . $key;
-                unlink($file)
-                  or $this_app->warn("Cannot remove state $file: $!");
-            }
-            $this_app->debug( 2, "component $key is NOT active, skipping" );
-            next;
-        } else {
-            $this_app->debug( 2, "component $key is active checking CPE" );
-        }
-
-        if ( changed_CPE( $old_cfg, $new_cfg, $old_hash{$key}->getPath() ) ) {
-            $this_app->debug( 2, "component $key: CPE changed" );
-            add_component( $new_hash{$key} );
-        } else {
-            $this_app->debug( 2, "component $key has not changed its CPE" );
-        }
-    }
-
-    return SUCCESS;
 
 }
 
@@ -1006,13 +600,12 @@ sub compare_profiles() {
 #
 # Launch the 'ncd' program, with the ncd arguments passed
 # to cdispd, and with the contents of @ICList as the component list.
+# Not that processing of some signals is delayed during ncm-ncd run.
 #
 # Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
 #
-sub launch_ncd() {
-    my $all = shift;
+sub launch_ncd {
 
-    my $components;
     my $result = 0;    # Assume success
 
     my @cmd = ( '/usr/sbin/ncm-ncd', '--configure' );
@@ -1053,11 +646,26 @@ sub launch_ncd() {
         $this_app->info( "about to run: " . $cmd_line );
         my $verb = $cmd[0];
         if ( -x $verb ) {
-            my $errormsg =
-              CAF::Process->new( \@cmd, log => $this_app )->output();
+            # Delay processing of some signals
+            delay_signals();
+
+            # Execute ncm-ncd and report exit status
+            my $errormsg = CAF::Process->new( \@cmd, log => $this_app )->output();
             $result = $? >> 8;
-            $this_app->info($errormsg);
-            $this_app->info("ncm-ncd finished with status: $result");
+            # Only log ncm-ncd output in debug mode as this duplicates information
+            # already logged to configuration module log files and to syslog
+            log_ncd_output($errormsg) if $log_ncd_output;
+            if ( $? ) {
+                $this_app->info("ncm-ncd finished with status: $result (some configuration modules failed to run successfully)");
+            } else {
+                $this_app->info("ncm-ncd finished with status: $result (all configuration modules ran successfully)");
+            }
+
+            # Process delayed signal if any and reestablish
+            # immediate processing of signals
+            process_signal();
+            immediate_signals();
+
         } else {
             $this_app->error("Command $verb not found");
             $result = 1;
@@ -1066,26 +674,30 @@ sub launch_ncd() {
     return $result;
 }
 
+
 #------------------------------------------------------------
 # main loop
 #------------------------------------------------------------
 
 #
-# cdispd main() algorithm
+# cdispd main()
 #
 
-my ( $cred, $cm, $path, $last_ncd_status );
-
-# minimal Path
+# Minimal path
 $ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/bin:/usr/sbin";
 
 umask(022);
 
 #
-# initialize the main class
+# initialize the CAF::Application
 #
-unless ( $this_app = cdispd->new( $0, @ARGV ) ) {
+unless ( $this_app = CDISPD::Application->new( $0, @ARGV ) ) {
     throw_error("cannot start application");
+}
+if ( $NCD_OUTPUT_LOG_LEVEL eq 'info' ) {
+    $log_ncd_output = 1;
+} else {
+    $log_ncd_output = $this_app->option($NCD_OUTPUT_LOG_LEVEL);
 }
 
 #
@@ -1103,22 +715,16 @@ if ( $this_app->option('quiet') ) {
 
 $this_app->debug( 1, "initializing program" );
 
-#
-# Handle signals properly
-#
-$SIG{'INT'}  = \&signal_terminate;
-$SIG{'TERM'} = \&signal_terminate;
-$SIG{'QUIT'} = \&signal_terminate;
-$SIG{'HUP'}  = 'IGNORE';
+# Configure signal handling
+immediate_signals();
 
 # list of components to be invoked
 $this_app->{ICLIST} = ();
 
 # credentials are undefined
-$cred = 0;
+my $cred = 0;
 
-$cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
-$path = EDG::WP4::CCM::Path->new("/");
+my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
 
 # perform an initial call of all components
 $this_app->info( 'ncm-cdispd version '
@@ -1134,7 +740,7 @@ $this_app->info('Dry run, no changes will be performed (--noaction flag set)')
 $this_app->info("initalization of components");
 # $last_ncd_status keeps track of the previous execution of ncm-ncd. It is a
 # usual exit code, with 0=success.
-$last_ncd_status = init_components();
+my $last_ncd_status = init_components();
 $this_app->debug( 1, "Initializing \$last_ncd_status to init_components status ($last_ncd_status)");
 my $ref_cid = $this_app->{OLD_CFID};
 $this_app->debug( 1, "CID of reference configuration set to $ref_cid" );
@@ -1143,10 +749,7 @@ $this_app->debug( 1, "CID of reference configuration set to $ref_cid" );
 
 while (1) {
 
-    # re-starting cdispd daemon with a HUP signal
-    # is only allowed during sleeping time
-    $SIG{'HUP'} = 'IGNORE';
-
+    # Wait for a new profile
     $this_app->debug( 1, "checking for new profiles ..." );
     $this_app->debug( 3, "CID of last profile processed: " . $this_app->{OLD_CFID} );
 
@@ -1158,8 +761,7 @@ while (1) {
     $this_app->info("new profile arrived, examining...");
 
     $this_app->{NEW_CFG}   = $cm->getLockedConfiguration($cred);
-    $this_app->{NEW_ELE}   = $this_app->{NEW_CFG}->getElement($path);
-    $this_app->{NEW_CKSUM} = $this_app->{NEW_ELE}->getChecksum();
+    $this_app->{NEW_CKSUM} = $this_app->{NEW_CFG}->getElement(CONFIG_ROOT)->getChecksum();
     $this_app->{NEW_CFID}  = $this_app->{NEW_CFG}->getConfigurationId();
     $this_app->debug( 3, "new profile cid=" . $this_app->{NEW_CFID} );
 
@@ -1184,18 +786,19 @@ while (1) {
             # Not really needed when re-running after a previous run error 
             # (as ICList is not cleared) but harmless
             compare_profiles();
+
+            # Run ncm-ncd and check status.
+            # If ncm-ncd returned an error, do not update the reference configuration to be used
+            # next time: this will force any component with errors to run again.
             $ncd_status = launch_ncd();
             $this_app->debug( 1, "launch_ncd() exit status = $ncd_status" );
             unless ($ncd_status) {
                 $ref_cid = $this_app->{NEW_CFID};
                 $this_app->debug( 1, "ncm-ncd executed successfully: update base configuration to CID $ref_cid");
                 $this_app->{OLD_CFG}   = $this_app->{NEW_CFG};
-                $this_app->{OLD_ELE}   = $this_app->{NEW_ELE};
                 $this_app->{OLD_CKSUM} = $this_app->{NEW_CKSUM};
                 $last_ncd_status       = 0;
             } else {
-                # neither forgotten nor forgiven:
-                # do not update reference configuration if ncm-ncd execution reported errors.
                 $this_app->debug( 1, "ncm-ncd reported errors: base configuration kept at CID $ref_cid");
                 $last_ncd_status = $ncd_status;
             }
@@ -1208,9 +811,6 @@ while (1) {
     }
 
     $this_app->{OLD_CFID} = $this_app->{NEW_CFID};
-
-    # now we can signal to restart the daemon
-    $SIG{'HUP'} = \&signal_restart;
 
 }
 
