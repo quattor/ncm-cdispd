@@ -605,10 +605,22 @@ sub launch_ncd {
             delay_signals();
 
             # Execute ncm-ncd and report exit status
-            my $errormsg = CAF::Process->new( \@cmd, log => $this_app )->output();
+            my $p = CAF::Process->new( \@cmd, log => $this_app );
+            sub act {
+                my ($logger, $message) = @_;
+                $logger->debug(1, $message);
+            }
+            my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
+            
             $result = $? >> 8;
-            $this_app->info($errormsg);
-            $this_app->info("ncm-ncd finished with status: $result");
+            $this_app->debug(5, "ncm-ncd finished with full message $errormsg");
+            my $msg = "ncm-ncd finished with status: $result";
+            if ( $? ) {
+                $msg .= " (some configuration modules failed to run successfully)";
+            } else {
+                $msg .= " (all configuration modules ran successfully)";
+            }
+            $this_app->info($msg);
 
             # Process delayed signal if any and reestablish
             # immediate processing of signals
