@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.quattor.maven</groupId>
     <artifactId>build-profile</artifactId>
-    <version>1.29</version>
+    <version>1.35</version>
   </parent>
 
   <scm>
@@ -45,6 +45,13 @@
       <name>Michel Jouvin</name>
       <email>jouvin@lal.in2p3.fr</email>
     </developer>
+    <developer>
+      <name>Nick Williams</name>
+      <email>nick.williams@morganstanley.com</email>
+      <roles>
+	<role>developer</role>
+      </roles>
+    </developer>
   </developers>
 
   <contributors>
@@ -59,13 +66,6 @@
       <name>Marco Emilio Poleggi</name>
       <roles>
 	<role>author</role>
-      </roles>
-    </contributor>
-    <contributor>
-      <name>Nick Williams</name>
-      <email>nick.williams@morganstanley.com</email>
-      <roles>
-	<role>contributor</role>
       </roles>
     </contributor>
   </contributors>
@@ -112,11 +112,26 @@
 		  <source>
 		    <location>${project.build.directory}/sbin</location>
 		    <includes>
-		      <include>${project.artifactId}</include>
+		      <include>**/*</include>
 		    </includes>
 		  </source>
 		</sources>
 	      </mapping>
+              <mapping>
+                <directory>/usr/lib/perl</directory>
+                <filemode>755</filemode>
+                <username>root</username>
+                <groupname>root</groupname>
+                <directoryIncluded>false</directoryIncluded>
+                <sources>
+                  <source>
+                    <location>${project.build.directory}/lib/perl</location>
+                    <includes>
+                      <include>**/*.pm</include>
+                    </includes>
+                  </source>
+                </sources>
+              </mapping>
 	      <mapping>
 		<directory>/usr/share/man/man8</directory>
 		<filemode>644</filemode>
@@ -187,9 +202,9 @@
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
                   <source>
-                    <location>${project.build.directory}/sbin</location>
+                    <location>${project.build.directory}/quattor</location>
                     <includes>
-                      <include>check-ncm-cdispd</include>
+                      <include>**/*</include>
                     </includes>
                   </source>
                 </sources>
@@ -253,12 +268,50 @@
 		  <directory>src/main/scripts</directory>
 		  <filtering>true</filtering>
 		  <includes>
-		    <include>**/*</include>
+		    <include>${project.artifactId}</include>
 		  </includes>
 		</resource>
 	      </resources>
 	    </configuration>
 	  </execution>
+          <execution>
+            <id>filter-check-daemon-sources</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/quattor/scripts</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/scripts</directory>
+                  <filtering>true</filtering>
+                  <includes>
+                    <include>check-ncm-cdispd</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+          <execution>
+            <id>filter-perl-sources</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration combine.self="override">
+              <outputDirectory>${project.build.directory}/lib/perl/CDISPD</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/perl</directory>
+                  <filtering>true</filtering>
+                  <includes>
+                    <include>*.pm</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
 	  <execution>
 	    <id>filter-config</id>
 	    <phase>process-sources</phase>
@@ -290,36 +343,36 @@
 		<resource>
 		  <directory>src/main/scripts</directory>
 		  <includes>
-		    <include>*</include>
+		    <include>ncm-cdispd</include>
 		  </includes>
 		  <filtering>true</filtering>
 		</resource>
 	      </resources>
 	    </configuration>
+	  </execution>
+          <execution>
+            <id>filter-lib-perl-pod-sources</id>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration self.combine="override">
+              <outputDirectory>${project.build.directory}/doc/pod/CDISPD</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>src/main/perl</directory>
+                  <includes>
+                    <include>*.pm</include>
+                  </includes>
+                  <filtering>true</filtering>
+                </resource>
+              </resources>
+            </configuration>
 	  </execution>
 	  <!-- The pod2man script requires a somewhat matching layout
 	       for the target/lib/perl and the target/doc/pod. The
 	       following two executions do that. We'll have to ignore
 	       the intermediate files from the RPM. -->
-	  <execution>
-	    <id>mimick-ncm-ncd-man</id>
-	    <phase>process-sources</phase>
-	    <goals>
-	      <goal>copy-resources</goal>
-	    </goals>
-	    <configuration>
-	      <outputDirectory>${project.build.directory}/doc/pod</outputDirectory>
-	      <resources>
-		<resource>
-		  <directory>src/main/scripts</directory>
-		  <includes>
-		    <include>*.pod</include>
-		  </includes>
-		  <filtering>true</filtering>
-		</resource>
-	      </resources>
-	    </configuration>
-	  </execution>
 	  <execution>
 	    <id>mimick-ncm-ncd-man-pod</id>
 	    <phase>process-sources</phase>
@@ -341,6 +394,7 @@
 	  </execution>
 	</executions>
       </plugin>
+
       <plugin>
 	<artifactId>maven-antrun-plugin</artifactId>
 	<executions>
@@ -352,18 +406,20 @@
 	    </goals>
 	    <configuration>
 	      <tasks name="Rename">
-		<move filtering="true" todir="${project.build.directory}/doc/pod">
-		  <fileset dir="${project.build.directory}/doc/pod" />
-		  <mapper>
-		    <globmapper from="ncm-cdispd" to="ncm-cdispd.pod" />
-		  </mapper>
-		</move>
-		<move filtering="true" todir="${project.build.directory}/lib/perl">
-		  <fileset dir="${project.build.directory}/lib/perl" />
-		  <mapper>
-		    <globmapper from="ncm-cdispd" to="ncm-cdispd.pod" />
-		  </mapper>
-		</move>
+		<move filtering="true"
+                      file="${project.build.directory}/doc/pod/ncm-cdispd" 
+                      tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod"
+                      verbose="true"/>
+		<move filtering="true"
+                      file="${project.build.directory}/lib/perl/ncm-cdispd" 
+                      tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod"
+                      verbose="true"/>
+                <move filtering="true" todir="${project.build.directory}/doc/pod/CDISPD">
+                  <fileset dir="${project.build.directory}/doc/pod/CDISPD" />
+                  <mapper>
+                    <globmapper from="*.pm" to="*.pod" />
+                  </mapper>
+                </move>
 	      </tasks>
 	    </configuration>
 	  </execution>
