@@ -613,7 +613,7 @@ sub launch_ncd {
             my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
             
             $result = $? >> 8;
-            $this_app->debug(5, "ncm-ncd finished with full message $errormsg");
+            $this_app->debug(3, "ncm-ncd finished with full message $errormsg");
             my $msg = "ncm-ncd finished with status: $result";
             if ( $? ) {
                 $msg .= " (some configuration modules failed to run successfully)";
