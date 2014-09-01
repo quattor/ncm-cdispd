@@ -6,7 +6,7 @@
   <artifactId>ncm-cdispd</artifactId>
 
   <packaging>pom</packaging>
-  <version>14.6.1-SNAPSHOT</version>
+  <version>14.8.0-rc2</version>
   <name>ncm-cdispd</name>
 
   <repositories>
@@ -406,14 +406,8 @@
 	    </goals>
 	    <configuration>
 	      <tasks name="Rename">
-		<move filtering="true"
-                      file="${project.build.directory}/doc/pod/ncm-cdispd" 
-                      tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod"
-                      verbose="true"/>
-		<move filtering="true"
-                      file="${project.build.directory}/lib/perl/ncm-cdispd" 
-                      tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod"
-                      verbose="true"/>
+		<move filtering="true" file="${project.build.directory}/doc/pod/ncm-cdispd" tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod" verbose="true" />
+		<move filtering="true" file="${project.build.directory}/lib/perl/ncm-cdispd" tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod" verbose="true" />
                 <move filtering="true" todir="${project.build.directory}/doc/pod/CDISPD">
                   <fileset dir="${project.build.directory}/doc/pod/CDISPD" />
                   <mapper>
