@@ -271,6 +271,7 @@ use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICLis
 use CAF::FileEditor;
 
 use constant CONFIG_ROOT => "/";
+use constant NCD_EXECUTABLE => "/usr/sbin/ncm-ncd";
 
 our $this_app;
 our %SIG;
@@ -564,7 +565,7 @@ sub launch_ncd {
 
     my $result = 0;    # Assume success
 
-    my $p = CAF::Process->new(['/usr/sbin/ncm-ncd', '--configure'] , log => $this_app );
+    my $p = CAF::Process->new([NCD_EXECUTABLE, '--configure'] , log => $this_app );
     if (   defined( $this_app->{ICLIST} ) && scalar(@{$this_app->{ICLIST}}) ) {
         # At this point, ICLIST should contain only components present in the last profile received.
         # The only case where a component may be in the list without being part of the configuration 
