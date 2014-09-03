@@ -615,13 +615,15 @@ sub launch_ncd {
             my $ec = $?;
             $this_app->debug(3, "ncm-ncd finished with full message $errormsg");
             my $msg = "ncm-ncd finished with status: exitcode ". ($ec >> 8) . " (ec $ec)";
+            my $log_level = 'info';
             if ( $ec ) {
+                $log_level = 'warn';
                 $msg .= " (some configuration modules failed to run successfully)";
                 $result = 1;
             } else {
                 $msg .= " (all configuration modules ran successfully)";
             }
-            $this_app->info($msg);
+            $this_app->$log_level($msg);
 
             # Process delayed signal if any and reestablish
             # immediate processing of signals
