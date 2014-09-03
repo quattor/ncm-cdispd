@@ -613,15 +613,15 @@ sub launch_ncd {
             my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
             
             my $ec = $?;
-            $this_app->debug(3, "ncm-ncd finished with full message $errormsg");
-            my $msg = "ncm-ncd finished with status: exitcode ". ($ec >> 8) . " (ec $ec)";
+            $this_app->debug(3, "ncm-ncd output:\n $errormsg");
+            my $msg = "ncm-ncd finished with status: ". ($ec >> 8) . " (ec $ec";
             my $log_level = 'info';
             if ( $ec ) {
                 $log_level = 'warn';
-                $msg .= " (some configuration modules failed to run successfully)";
+                $msg .= ", some configuration modules failed to run successfully)";
                 $result = 1;
             } else {
-                $msg .= " (all configuration modules ran successfully)";
+                $msg .= ", all configuration modules ran successfully)";
             }
             $this_app->$log_level($msg);
 
