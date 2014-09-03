@@ -268,6 +268,7 @@ use LC::Exception qw ( throw_error);
 use EDG::WP4::CCM::CacheManager;
 use CDISPD::Application;
 use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
+use CAF::FileEditor;
 
 use constant CONFIG_ROOT => "/";
 
@@ -613,6 +614,7 @@ sub launch_ncd {
             my $msg = "ncm-ncd finished with status: ". ($ec >> 8) . " (ec $ec";
             my $log_level = 'info';
             if ( $ec ) {
+                log_failed_components();
                 $log_level = 'warn';
                 $msg .= ", some configuration modules failed to run successfully)";
                 $result = 1;
@@ -632,6 +634,42 @@ sub launch_ncd {
         }
     }
     return $result;
+}
+
+
+# log_failed_components()
+#
+# Scan the ncm-ncd component state directory and for each failed component
+# (component with an entry in the directory), print a line with the name of the
+# component and the failure reason.
+#
+# Arguments: none
+#
+# Return value: none
+#
+sub log_failed_components {
+
+    unless ( $this_app->option('state') ) {
+        $this_app->debug(1,"No component state file defined: cannot list failed components");
+        return;
+    }
+
+    my $comp_state_dir = $this_app->option('state');
+    if ( opendir(my $dh, $comp_state_dir) ) {
+        my @comps = grep { -f "$comp_state_dir/$_" } readdir($dh);
+        $this_app->warn("No failed component found in the component state directory ($comp_state_dir)") if ( @comps == 0 );
+        foreach my $component (sort(@comps)) {
+            my $fh = CAF::FileEditor->new("$comp_state_dir/$component");
+            my $comp_msg = "$fh";
+            chomp $comp_msg;
+            $this_app->warn("Component $component failed with message: $comp_msg");
+            $fh->close();
+        }
+        closedir $dh;
+    } else {
+        $this_app->error("Failed to open component state directory ($comp_state_dir)");
+    }
+
 }
 
 
