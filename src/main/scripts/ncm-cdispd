@@ -605,12 +605,11 @@ sub launch_ncd {
             # Execute ncm-ncd and report exit status
             sub act {
                 my ($logger, $message) = @_;
-                $logger->debug(1, $message);
+                $logger->verbose($message);
             }
             my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
             
             my $ec = $?;
-            $this_app->debug(3, "ncm-ncd output:\n $errormsg");
             my $msg = "ncm-ncd finished with status: ". ($ec >> 8) . " (ec $ec";
             my $log_level = 'info';
             if ( $ec ) {
