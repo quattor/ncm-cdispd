@@ -663,6 +663,7 @@ sub log_failed_components {
             my $fh = CAF::FileEditor->new("$comp_state_dir/$component");
             my $comp_msg = "$fh";
             chomp $comp_msg;
+            $comp_msg = "(no message)" unless $comp_msg;
             $this_app->warn("Component $component failed with message: $comp_msg");
             $fh->close();
         }
