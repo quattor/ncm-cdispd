@@ -336,7 +336,7 @@ sub register_signal {
     }
 
     $this_app->{WAITING_SIGNAL} = $signal;
-    $this_app->debug(1,"Signal $signal registered for delayed processing");
+    $this_app->info("Signal $signal registered for processing after ncm-ncd completion");
 
 }
 
@@ -356,7 +356,7 @@ sub process_signal {
         return;
     }
 
-    $this_app->debug(1,"process_signal(): processing delayed signal ".$this_app->{WAITING_SIGNAL});
+    $this_app->info("Processing delayed signal ".$this_app->{WAITING_SIGNAL});
 
     # Reset the delayed signal first
     my $signal = $this_app->{WAITING_SIGNAL};
@@ -383,7 +383,7 @@ sub signal_terminate {
         return;
     }
 
-    $this_app->warn("signal handler: received signal: $signal");
+    $this_app->warn("signal handler: signal $signal received");
     $this_app->warn('terminating ncm-cdispd...');
 
     exit(-1);
