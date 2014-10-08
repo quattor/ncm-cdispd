@@ -192,7 +192,7 @@
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
                   <source>
-                    <location>${project.build.directory}/quattor</location>
+                    <location>${project.build.directory}/quattor/scripts</location>
                     <includes>
                       <include>**/*</include>
                     </includes>
