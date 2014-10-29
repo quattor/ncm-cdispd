@@ -3,7 +3,7 @@
   <groupId>org.quattor.daemon</groupId>
   <artifactId>ncm-cdispd</artifactId>
   <packaging>pom</packaging>
-  <version>14.8.1-SNAPSHOT</version>
+  <version>14.10.0-rc1</version>
   <name>ncm-cdispd</name>
   <repositories>
     <repository>
@@ -395,12 +395,12 @@
             </goals>
             <configuration>
               <tasks name="Rename">
-                <move file="${project.build.directory}/doc/pod/ncm-cdispd" filtering="true" tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod" verbose="true"/>
-                <move file="${project.build.directory}/lib/perl/ncm-cdispd" filtering="true" tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod" verbose="true"/>
+                <move file="${project.build.directory}/doc/pod/ncm-cdispd" filtering="true" tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod" verbose="true" />
+                <move file="${project.build.directory}/lib/perl/ncm-cdispd" filtering="true" tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod" verbose="true" />
                 <move filtering="true" todir="${project.build.directory}/doc/pod/CDISPD">
-                  <fileset dir="${project.build.directory}/doc/pod/CDISPD"/>
+                  <fileset dir="${project.build.directory}/doc/pod/CDISPD" />
                   <mapper>
-                    <globmapper from="*.pm" to="*.pod"/>
+                    <globmapper from="*.pm" to="*.pod" />
                   </mapper>
                 </move>
               </tasks>
