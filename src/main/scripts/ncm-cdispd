@@ -769,11 +769,19 @@ while (1) {
         if (   ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} )
             || ( $last_ncd_status != 0 ) )
         {
+
+            # make a copy of the old ICLIST
+            my $old_iclist = [ @{ $this_app->{ICLIST} } ];
+            $this_app->debug(2, "Current ICLIST ".join(',', sort @$old_iclist));
+
             if ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} ) {
                 $this_app->info("new (and changed) profile detected");
                 # Clear the list of component to run only if last execution of
                 # ncm-ncd was successful
-                clean_ICList() if $last_ncd_status == 0;
+                if ($last_ncd_status == 0) {
+                    $this_app->debug(2, "Cleaning ICLIST");
+                    clean_ICList();
+                };
             } else {
                 $this_app->info( "new profile identical but re-running ncm-ncd since last execution reported errors");
             }
@@ -796,6 +804,9 @@ while (1) {
             } else {
                 $this_app->debug( 1, "ncm-ncd reported errors: base configuration kept at CID $ref_cid");
                 $last_ncd_status = $ncd_status;
+                # restore the ICLIST
+                $this_app->debug(2, "Restoring ICLIST to previous list: ".join(',', sort @$old_iclist));
+                $this_app->{ICLIST} = $old_iclist;
             }
 
         } else {
