@@ -771,7 +771,7 @@ while (1) {
         {
 
             # make a copy of the old ICLIST
-            my $old_iclist = [ @{ $this_app->{ICLIST} } ];
+            my $old_iclist = [ @{ $this_app->{ICLIST} || [] } ];
             $this_app->debug(2, "Current ICLIST ".join(',', sort @$old_iclist));
 
             if ( $this_app->{OLD_CKSUM} ne $this_app->{NEW_CKSUM} ) {
