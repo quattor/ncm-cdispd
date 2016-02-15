@@ -13,6 +13,8 @@ $CAF::Object::NoAction = 1;
 
 our $this_app;
 
+Test::NoWarnings::clear_warnings();
+
 =pod
 
 =head1 DESCRIPTION

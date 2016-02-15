@@ -10,6 +10,8 @@ use CAF::Object;
 
 $CAF::Object::NoAction = 1;
 
+Test::NoWarnings::clear_warnings();
+
 =pod
 
 =head1 DESCRIPTION
