@@ -64,54 +64,17 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <groupId>org.quattor.pan</groupId>
-          <artifactId>panc-maven-plugin</artifactId>
-          <version>9.0.0-RC3</version>
-        </plugin>
-        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>rpm-maven-plugin</artifactId>
           <configuration>
             <summary>Configuration dispatch daemon</summary>
             <name>${project.artifactId}</name>
             <needarch>noarch</needarch>
-            <requires combine.self="override">
-              <require>perl-CAF</require>
-              <require>ccm</require>
-            </requires>
+            <url>https://github.com/quattor/ncm-cdispd/tree/master</url>
             <mappings>
               <mapping>
-                <sources>
-                  <source>
-                    <location>${project.build.directory}/daemon</location>
-                  </source>
-                </sources>
-                <directory>/etc/init.d</directory>
-                <filemode>755</filemode>
-                <directoryIncluded>false</directoryIncluded>
-                <username>root</username>
-                <groupname>root</groupname>
-              </mapping>
-              <mapping>
-                <directory>/usr/sbin</directory>
-                <filemode>755</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
-                <directoryIncluded>false</directoryIncluded>
-                <sources>
-                  <source>
-                    <location>${project.build.directory}/sbin</location>
-                    <includes>
-                      <include>**/*</include>
-                    </includes>
-                  </source>
-                </sources>
-              </mapping>
-              <mapping>
                 <directory>/usr/lib/perl</directory>
-                <filemode>755</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
+                <documentation>false</documentation>
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
                   <source>
@@ -123,25 +86,7 @@
                 </sources>
               </mapping>
               <mapping>
-                <directory>/usr/share/man/man8</directory>
-                <filemode>644</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
-                <directoryIncluded>false</directoryIncluded>
-                <sources>
-                  <source>
-                    <location>${project.build.directory}/doc/man</location>
-                    <includes>
-                      <include>**/*8.gz</include>
-                    </includes>
-                  </source>
-                </sources>
-              </mapping>
-              <mapping>
                 <directory>/usr/share/doc/${project.artifactId}-${project.version}</directory>
-                <filemode>644</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
                 <documentation>true</documentation>
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
@@ -153,24 +98,44 @@
                   </source>
                 </sources>
               </mapping>
-              <!-- <mapping> -->
-	      <!-- 	<directory>/usr/share/man</directory> -->
-	      <!-- 	<filemode>644</filemode> -->
-	      <!-- 	<username>root</username> -->
-	      <!-- 	<groupname>root</groupname> -->
-	      <!-- 	<documentation>true</documentation> -->
-	      <!-- 	<directoryIncluded>false</directoryIncluded> -->
-	      <!-- 	<sources> -->
-	      <!-- 	  <source> -->
-	      <!-- 	    <location>target/doc/man</location> -->
-	      <!-- 	  </source> -->
-	      <!-- 	</sources> -->
-	      <!-- </mapping> -->
+              <mapping>
+                <sources>
+                  <source>
+                    <location>${project.build.directory}/daemon</location>
+                  </source>
+                </sources>
+                <directory>/etc/init.d</directory>
+                <filemode>755</filemode>
+                <directoryIncluded>false</directoryIncluded>
+              </mapping>
+              <mapping>
+                <directory>/usr/sbin</directory>
+                <filemode>755</filemode>
+                <directoryIncluded>false</directoryIncluded>
+                <sources>
+                  <source>
+                    <location>${project.build.directory}/sbin</location>
+                    <includes>
+                      <include>**/*</include>
+                    </includes>
+                  </source>
+                </sources>
+              </mapping>
+              <mapping>
+                <directory>/usr/share/man</directory>
+                <documentation>true</documentation>
+                <directoryIncluded>false</directoryIncluded>
+                <sources>
+                  <source>
+                    <location>${project.build.directory}/doc/man</location>
+                    <includes>
+                      <include>**/*8.gz</include>
+                    </includes>
+                  </source>
+                </sources>
+              </mapping>
               <mapping>
                 <directory>/etc</directory>
-                <filemode>644</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
                 <documentation>false</documentation>
                 <configuration>noreplace</configuration>
                 <directoryIncluded>false</directoryIncluded>
@@ -186,8 +151,6 @@
               <mapping>
                 <directory>/usr/quattor/scripts</directory>
                 <filemode>755</filemode>
-                <username>root</username>
-                <groupname>root</groupname>
                 <documentation>false</documentation>
                 <directoryIncluded>false</directoryIncluded>
                 <sources>
@@ -395,12 +358,12 @@
             </goals>
             <configuration>
               <tasks name="Rename">
-                <move file="${project.build.directory}/doc/pod/ncm-cdispd" filtering="true" tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod" verbose="true" />
-                <move file="${project.build.directory}/lib/perl/ncm-cdispd" filtering="true" tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod" verbose="true" />
+                <move file="${project.build.directory}/doc/pod/ncm-cdispd" filtering="true" tofile="${project.build.directory}/doc/pod/ncm-cdispd.pod" verbose="true"/>
+                <move file="${project.build.directory}/lib/perl/ncm-cdispd" filtering="true" tofile="${project.build.directory}/lib/perl/ncm-cdispd.pod" verbose="true"/>
                 <move filtering="true" todir="${project.build.directory}/doc/pod/CDISPD">
-                  <fileset dir="${project.build.directory}/doc/pod/CDISPD" />
+                  <fileset dir="${project.build.directory}/doc/pod/CDISPD"/>
                   <mapper>
-                    <globmapper from="*.pm" to="*.pod" />
+                    <globmapper from="*.pm" to="*.pod"/>
                   </mapper>
                 </move>
               </tasks>

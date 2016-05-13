@@ -1,16 +1,12 @@
 # ${license-info}
-# ${developer-info
+# ${developer-info}
 # ${author-info}
 # ${build-info}
-#
-#
-# CDISPD::Application class
-#
-# Provide a class to initialize the CAF::Application used by ncm-cdispd
-#
-# Initial version written by German Cancio <German.Cancio@cern.ch>
-# (C) 2003 German Cancio & EU DataGrid http://www.edg.org
-#
+
+package CDISPD::Application;
+
+use strict;
+use warnings;
 
 =pod
 
@@ -24,7 +20,6 @@ This class provides the ncm-cdispd specific methods used to initialize the CAF::
 
 =cut
 
-package CDISPD::Application;
 
 use Exporter;
 
@@ -33,8 +28,6 @@ use CAF::Reporter;
 use CAF::Process;
 use CAF::Object;
 use LC::Exception qw (SUCCESS throw_error);
-
-use strict;
 
 our @ISA = qw(CAF::Application CAF::Reporter Exporter);
 our @EXPORT = qw(CDISPD_CONFIG_FILE);

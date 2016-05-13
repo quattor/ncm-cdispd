@@ -1,16 +1,12 @@
 # ${license-info}
-# ${developer-info
+# ${developer-info}
 # ${author-info}
 # ${build-info}
-#
-#
-# CDISPD::Utils class
-#
-# Utility functions used by ncm-cdispd.
-#
-# Initial version written by German Cancio <German.Cancio@cern.ch>
-# (C) 2003 German Cancio & EU DataGrid http://www.edg.org
-#
+
+package CDISPD::Utils;
+
+use strict;
+use warnings;
 
 =pod
 
@@ -33,9 +29,6 @@ which components must be run.
 #               (very verbose!)
 ####################################################################
 
-package CDISPD::Utils;
-
-use strict;
 use POSIX qw(setsid);
 require Exporter;
 our @ISA = qw(Exporter);
@@ -473,5 +466,11 @@ sub compare_profiles {
         }
     }
 }
+
+=pod
+
+=back
+
+=cut
 
 1;
