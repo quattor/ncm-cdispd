@@ -18,7 +18,8 @@
 DISPATCH=/usr/sbin/ncm-cdispd
 RETVAL=0
 PIDFILE=/var/run/ncm-cdispd.pid
-LOCKFILE=/var/lock/quattor/ncm-cdispd
+LOCKFILE=/var/lock/subsys/ncm-cdispd
+OLD_LOCKFILE=/var/lock/quattor/ncm-cdispd
 prog="ncm-cdispd"
 
 start() {
@@ -27,7 +28,7 @@ start() {
     RETVAL=$?
     # Mark the attempt to start the daemon, even if not successful.
     # This will allow the monitoring cron job to attempt to restart it
-    touch /var/lock/quattor/ncm-cdispd
+    touch $LOCKFILE
     echo
 }
 
@@ -35,8 +36,8 @@ stop() {
     bash -c "echo -n 'Stopping $prog:'"
     killproc $DISPATCH -TERM
     RETVAL=$?
-    if [ "$RETVAL" = 0 ]
-    then
+    if [ "$RETVAL" -eq 0 ]; then
+        rm -f $OLD_LOCKFILE
         rm -f $LOCKFILE
         rm -f $PIDFILE
     fi
