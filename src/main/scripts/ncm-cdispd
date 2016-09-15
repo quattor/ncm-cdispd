@@ -1,13 +1,8 @@
 #!/usr/bin/perl -w
-
-#
-# cdispd	Configuration Dispatch Daemon
-#
-# Copyright (c) 2003 EU DataGrid.
-# For license conditions see http://www.eu-datagrid.org/license.html
-#
+# ${license-info}
 # ${developer-info}
 # ${author-info}
+# ${build-info}
 
 =pod
 
@@ -44,7 +39,7 @@ ncm-cdispd should trigger the execution of <componentX>.
 By default a component gets registered in its configuration, and in
 its software package.
 
-The dispatch of a component can be skipped by setting the 'dispatch' 
+The dispatch of a component can be skipped by setting the 'dispatch'
 flag to false
 
  "/software/components/spma/dispatch" = false;
@@ -66,7 +61,7 @@ deactivated in the new profile).
 
 =item *
 
-In the particular case that the last NCM run reported errors 
+In the particular case that the last NCM run reported errors
 AND no NCM relevant changes between the reference configuration
 and a new profile are detected, ncm-ncd is invoked for all active
 components.
@@ -201,50 +196,22 @@ ncm-cdispd to reinitialize (configuration reset to values in the configuration
 file and command line options ignored, reference profile set to last
 profile available).
 
-B<HUP> and B<TERM> signals are not processed immediately if they occur when `ncm-ncd` 
+B<HUP> and B<TERM> signals are not processed immediately if they occur when `ncm-ncd`
 is run but they are remembered and the relevant action is done at the end of
 ncm-ncd run. At any other moment, they are processed immediately.
 
-The delayed processing of `TERM` may lead to a suprising situation if you do a  
+The delayed processing of `TERM` may lead to a suprising situation if you do a
 restart (start + stop) when ncm-ncd is running: the new ncm-cdispd process is started
-before the current one is really stopped and you end up with 2 (or even more 
+before the current one is really stopped and you end up with 2 (or even more
 depending on the number of restart you did!) ncm-cdispd process. In fact this is harmless because
-ncm-ncd creates a lock that forbid new processes to actually do anything until the original 
+ncm-ncd creates a lock that forbid new processes to actually do anything until the original
 one has exited, at the end of `ncm-ncd`.
-
-=head1 MORE INFORMATION
-
-NCM specification document
-
-https://edms.cern.ch/document/372643
-
-=head1 AUTHOR
-
-Rafael A. Garcia Leiva <angel.leiva@uam.es>
-
-Bruno Merin <bruno.merin@uam.es>
-
-Universidad Autonoma de Madrid
-
-=head1 VERSION
-
-$Id: ncm-cdispd.cin,v 1.16 2008/05/29 13:41:33 vero Exp $
 
 =cut
 
-#
-# Standard Common Application Framework beginning sequence
-#
-
-#
-# Beginning sequence for EDG initialization
-#
 BEGIN {
-
     # use perl libs in /usr/lib/perl
     unshift( @INC, '/usr/lib/perl' );
-    unshift( @INC, '/opt/edg/lib/perl' );
-
 }
 
 
@@ -261,10 +228,11 @@ BEGIN {
 package main;
 
 use strict;
+use warnings;
 use POSIX qw(setsid);
-use Readonly;
 
-use LC::Exception qw ( throw_error);
+use CAF::Object qw ( throw_error);
+use LC::Exception;
 use EDG::WP4::CCM::CacheManager;
 use CDISPD::Application;
 use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
@@ -277,20 +245,20 @@ our $this_app;
 our %SIG;
 
 
-################################################
-# Functions used by main function (main loop)
-################################################
+=head1 FUNCTIONS
 
+=over
 
-#
-# Configure signal handling for delayed processing of some signals
-#
-# Arguments: none
-#
-# Return value: none
-#
+=item delay_signals
 
-sub delay_signals {
+Configure signal handling for delayed processing of some signals
+
+No return value.
+
+=cut
+
+sub delay_signals
+{
 
     $SIG{'INT'}  = \&signal_terminate;
     $SIG{'TERM'} = \&register_signal;
@@ -299,15 +267,16 @@ sub delay_signals {
 
 }
 
-#
-# Configure signal handling for immediate processing of all signals
-#
-# Arguments: none
-#
-# Return value: none
-#
+=item immediate_signals
 
-sub immediate_signals {
+Configure signal handling for immediate processing of all signals
+
+No return value.
+
+=cut
+
+sub immediate_signals
+{
 
     $SIG{'INT'}  = \&signal_terminate;
     $SIG{'TERM'} = \&signal_terminate;
@@ -316,16 +285,15 @@ sub immediate_signals {
 
 }
 
-#
-# Keep track of the signal received but do not process it immediately.
-# This is used to postpone signal processing during the exeuction of
-# ncm-ncd.
-#
-# Arguments
-#    - Signal to register
-#
-# Return value: none
-#
+=item register_signal
+
+Keep track of the signal received but do not process it immediately.
+This is used to postpone signal processing during the exeuction of
+ncm-ncd.
+
+No return value.
+
+=cut
 
 sub register_signal {
 
@@ -340,16 +308,17 @@ sub register_signal {
 
 }
 
-#
-# Process a delayed signal.
-# This function does nothing if called when there is no delayed signaled.
-#
-# Arguments: none
-#
-# Return value: none
-#
+=item process_signal
 
-sub process_signal {
+Process a delayed signal.
+This function does nothing if called when there is no delayed signal.
+
+No return value.
+
+=cut
+
+sub process_signal
+{
 
     unless ( $this_app->{WAITING_SIGNAL} ) {
         $this_app->debug(1,"process_signal(): no delayed signal to process");
@@ -372,10 +341,14 @@ sub process_signal {
 
 }
 
-#
-# Proccess signals INT, TERM and QUIT: terminate cdispd daemon
-#
-sub signal_terminate {
+=item signal_terminate
+
+Proccess signals INT, TERM and QUIT: terminate cdispd daemon
+
+=cut
+
+sub signal_terminate
+{
 
     my $signal = shift;
     unless ( $signal ) {
@@ -390,9 +363,12 @@ sub signal_terminate {
 
 }
 
-#
-# Proccess HUP signal: reinitialize cdispd daemon
-#
+=item signal_reinitialize
+
+Proccess HUP signal: reinitialize cdispd daemon
+
+=cut
+
 sub signal_reinitialize {
 
     my $signal = shift;
@@ -416,14 +392,17 @@ sub signal_reinitialize {
     $this_app->warn("... previous profile set to last one");
 
     return;
-
 }
 
-#
-# Exception handling
-# Use of LC::Exception with CAF
-#
-sub exception_handler {
+=item exception_handler
+
+Exception handling
+Use of LC::Exception with CAF
+
+=cut
+
+sub exception_handler
+{
 
     my ( $ec, $e ) = @_;
     unless ( $ec && $e ) {
@@ -443,13 +422,15 @@ sub exception_handler {
 
 }
 
-#
-# daemonize()
-#
-# Become a daemon. Perform a couple of things to avoid
-# potential problems when running as a daemon.
-#
-sub daemonize {
+=item daemonize
+
+Become a daemon. Perform a couple of things to avoid
+potential problems when running as a daemon.
+
+=cut
+
+sub daemonize
+{
 
     my $logfile = $this_app->option('logfile');
 
@@ -508,16 +489,17 @@ sub daemonize {
 
 }
 
-#
-# init_components()
-#
-# Perform an initial call of all components with dispatch property = true
-#
-# Arguments: none
-#
-# Return value: 0 if success, else a non-zero value.
-#
-sub init_components {
+
+=item init_components
+
+Perform an initial call of all components with dispatch property = true
+
+Returns on success, a non-zero value otherwise.
+
+=cut
+
+sub init_components
+{
 
     # credentials are undefined
     my $cred = 0;
@@ -548,27 +530,28 @@ sub init_components {
     $this_app->{OLD_CFID}  = $this_app->{OLD_CFG}->getConfigurationId();
 
     return $status;
-
 }
 
 
-#
-# launch_ncd()
-#
-# Launch the 'ncd' program, with the ncd arguments passed
-# to cdispd, and with the contents of @ICList as the component list.
-# Not that processing of some signals is delayed during ncm-ncd run.
-#
-# Return value: ncm-ncd exit status if run else 0 (success) or 1 (ncm-ncd missing)
-#
-sub launch_ncd {
+=item launch_ncd
+
+Launch the 'ncd' program, with the ncd arguments passed
+to cdispd, and with the contents of @ICList as the component list.
+Not that processing of some signals is delayed during ncm-ncd run.
+
+Returns ncm-ncd exit status if run, else 0 (success) or 1 (ncm-ncd missing).
+
+=cut
+
+sub launch_ncd
+{
 
     my $result = 0;    # Assume success
 
     my $p = CAF::Process->new([NCD_EXECUTABLE, '--configure'] , log => $this_app );
     if (   defined( $this_app->{ICLIST} ) && scalar(@{$this_app->{ICLIST}}) ) {
         # At this point, ICLIST should contain only components present in the last profile received.
-        # The only case where a component may be in the list without being part of the configuration 
+        # The only case where a component may be in the list without being part of the configuration
         # is the following:
         #   - Profile n is deployed succesfully (ncm-ncd returns a success)
         #   - Profile n+1 add a new component X that fails (reference config to compare next profile with remains n)
@@ -610,7 +593,7 @@ sub launch_ncd {
                 $logger->verbose($message);
             }
             my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
-            
+
             my $ec = $?;
             my $msg = "ncm-ncd finished with status: ". ($ec >> 8) . " (ec $ec";
             my $log_level = 'info';
@@ -638,17 +621,18 @@ sub launch_ncd {
 }
 
 
-# log_failed_components()
-#
-# Scan the ncm-ncd component state directory and for each failed component
-# (component with an entry in the directory), print a line with the name of the
-# component and the failure reason.
-#
-# Arguments: none
-#
-# Return value: none
-#
-sub log_failed_components {
+=item log_failed_components
+
+Scan the ncm-ncd component state directory and for each failed component
+(component with an entry in the directory), print a line with the name of the
+component and the failure reason.
+
+No return value.
+
+=cut
+
+sub log_failed_components
+{
 
     unless ( $this_app->option('state') ) {
         $this_app->debug(1,"No component state file defined: cannot list failed components");
@@ -675,29 +659,21 @@ sub log_failed_components {
 }
 
 
-#------------------------------------------------------------
-# main loop
-#------------------------------------------------------------
-
 #
 # cdispd main()
 #
 
 # Minimal path
-$ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/bin:/usr/sbin";
+$ENV{"PATH"} = "/bin:/sbin:/usr/bin:/usr/sbin";
 
 umask(022);
 
-#
 # initialize the CAF::Application
-#
 unless ( $this_app = CDISPD::Application->new( $0, @ARGV ) ) {
     throw_error("cannot start application");
 }
 
-#
-# Set Execption handler
-#
+# Set Exception handler
 ( LC::Exception::Context->new )->error_handler( \&exception_handler );
 
 # become a daemon if --D
@@ -720,7 +696,7 @@ clean_ICList();
 # credentials are undefined
 my $cred = 0;
 
-my $cm   = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
+my $cm = EDG::WP4::CCM::CacheManager->new( $this_app->option('cache_root') );
 
 # perform an initial call of all components
 $this_app->info( 'ncm-cdispd version '
@@ -797,7 +773,7 @@ while (1) {
                 $this_app->info( "new profile identical but re-running ncm-ncd since last execution reported errors");
             }
 
-            # Not really needed when re-running after a previous run error 
+            # Not really needed when re-running after a previous run error
             # (as ICList is not cleared) but harmless
             compare_profiles();
 
@@ -831,5 +807,10 @@ while (1) {
 
 }
 
-exit(0);
+=pod
 
+=back
+
+=cut
+
+exit(0);
