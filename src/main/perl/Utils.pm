@@ -87,23 +87,16 @@ sub escape {
 }
 
 
-=pod 
+=item clean_ICList
 
-=item clean_ICList ()
-
- Empty the list of invoked components ($this_app->{ICLIST})
-
- Arguments: none
-
- Return value: none
+Empty/initialise the list of invoked components << $this_app->{ICLIST} >>
 
 =cut
 
-sub clean_ICList {
-
+sub clean_ICList 
+{
     $this_app->debug(3, "cleaning IC list");
-    $this_app->{ICLIST} = ();
-
+    $this_app->{ICLIST} = [];
 }
 
 =pod

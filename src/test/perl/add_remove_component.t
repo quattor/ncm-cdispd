@@ -33,7 +33,7 @@ unless ( $this_app = CDISPD::Application->new($0,[]) ) {
 }
 
 # Initialize ICLIST (used by utility functions)
-$this_app->{ICLIST} = ();
+$this_app->{ICLIST} = [];
 
 my $config = get_config_for_profile("profile1");
 my $comp_config = $config->getElement(COMP_CONFIG_PATH)->getTree();
@@ -92,7 +92,7 @@ is($this_app->{ICLIST}[0], $component2, "ICLIST contains '$component2'");
 
 # Clear ICLIST and check there is nothing left
 clean_ICList();
-is($this_app->{ICLIST}, undef, "ICLIST is empty");
+is_deeply($this_app->{ICLIST}, [], "ICLIST is empty");
 
 # Attempt to add a broken component (dispatch property missing):
 # Check that nothing is added.
@@ -100,7 +100,7 @@ $config = get_config_for_profile("broken_profile");
 $comp_config = $config->getElement(COMP_CONFIG_PATH)->getTree();
 $component1 = 'spma';
 add_component($comp_config,$component1);
-is($this_app->{ICLIST}, undef, "ICLIST is empty");
+is_deeply($this_app->{ICLIST}, [], "ICLIST is empty");
 
 
 Test::NoWarnings::had_no_warnings();

@@ -714,7 +714,8 @@ $this_app->debug( 1, "initializing program" );
 immediate_signals();
 
 # list of components to be invoked
-$this_app->{ICLIST} = ();
+$this_app->debug(2, "Initialising ICLIST");
+clean_ICList();
 
 # credentials are undefined
 my $cred = 0;
