@@ -93,7 +93,7 @@ Empty/initialise the list of invoked components << $this_app->{ICLIST} >>
 
 =cut
 
-sub clean_ICList 
+sub clean_ICList
 {
     $this_app->debug(3, "cleaning IC list");
     $this_app->{ICLIST} = [];
@@ -118,10 +118,10 @@ sub remove_component {
         $this_app->error("remove_component(): missing argument");
         return;
     }
-    
+
     $this_app->debug(3, "Removing component $component from ICLIST");
     @{$this_app->{ICLIST}} = grep ($_ ne $component, @{$this_app->{ICLIST}});
-    
+
     return;
 }
 
@@ -149,16 +149,6 @@ sub add_component {
         return (1);
     }
 
-    if ( $this_app->option('state') ) {
-        # Touch the file to indicate the last time the component has been scheduled to run
-        my $state_file = $this_app->option('state')."/$component";
-        if ( open( TOUCH, ">$state_file" ) ) {
-            close(TOUCH);
-        } else {
-            $this_app->warn("Cannot update state for component $component (state file=$state_file, status=$!)");
-        }
-    }
-
     # Do not add an inactive component.
     unless ( is_active($comp_config,$component)) {
         return (0);
@@ -175,6 +165,16 @@ sub add_component {
         } else {
             $this_app->report("component $component, marked to dispatch, added to list");
             push( @{ $this_app->{ICLIST} }, $component );
+
+            if ( $this_app->option('state') ) {
+                # Touch the file to indicate the last time the component has been scheduled to run
+                my $state_file = $this_app->option('state')."/$component";
+                if ( open( TOUCH, ">$state_file" ) ) {
+                    close(TOUCH);
+                } else {
+                    $this_app->warn("Cannot update state for component $component (state file=$state_file, status=$!)");
+                }
+            }
         }
     } else {
         $this_app->debug(2, "component $component, marked to not dispatch, NOT added to list" );
@@ -266,7 +266,7 @@ sub is_active {
     if ( $comp_config->{$component}->{active} ) {
         $this_app->debug(2, "component $component is active" );
     } else {
-        $this_app->debug(2, "component $component is inactive" );    
+        $this_app->debug(2, "component $component is inactive" );
     }
 
     return $comp_config->{$component}->{active};
@@ -286,7 +286,7 @@ sub is_active {
  Return value: an array containing:
     - the component configuration path (except if --noautoregcomp has been specified)
     - the component package path (except if --noautoregpkg has been specified)
-    - each path whose change has been explicitely subscribed (register_change property) 
+    - each path whose change has been explicitely subscribed (register_change property)
 
 =cut
 
@@ -310,7 +310,7 @@ sub get_CPE {
     }
 
     #
-    # add the component package to @list, except if auto-registration 
+    # add the component package to @list, except if auto-registration
     # of packages has been disabled
     #
     unless ( $this_app->option('noautoregpkg') ) {
@@ -325,7 +325,7 @@ sub get_CPE {
     if ( $comp_config->{$component}->{register_change} ) {
         foreach my $path (@{$comp_config->{$component}->{register_change}}) {
             $this_app->debug(3, "add $path to CPE list");
-            push @list, $path;            
+            push @list, $path;
         }
     }
 
@@ -409,7 +409,7 @@ sub changed_CPE {
 
 sub compare_profiles {
 
-    # Does the path exist at all? Avoid crashing cdispd in weird configuration. 
+    # Does the path exist at all? Avoid crashing cdispd in weird configuration.
     my $old_comp_config;
     if ( $this_app->{OLD_CFG}->elementExists(COMP_CONFIG_PATH) ) {
         $old_comp_config  = $this_app->{OLD_CFG}->getElement(COMP_CONFIG_PATH)->getTree();
