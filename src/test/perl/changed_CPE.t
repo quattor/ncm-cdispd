@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 32;
+use Test::More tests => 14;
 use Test::NoWarnings;
 use Test::Quattor qw(profile1 profile2);
 use CDISPD::Utils;
@@ -40,68 +40,43 @@ $this_app->{NEW_CFG} = $config_final;
 # named: get its CPE list and check if configuration module configuration change is detected
 my $component = 'named';
 my @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-my $CPE_length = @CPE;
-is($CPE_length, 2, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}"], "'$component': CPE correct");
 ok(CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: configuration change detected");
 
 # ccm: get its CPE list and check if its CPE list modification is detected
 # (subscribed path removed)
 $component = 'ccm';
 @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-$CPE_length = @CPE;
-is($CPE_length, 3, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
-is($CPE[2],"/system/kernel", "'$component': third CPE correct");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}", "/system/kernel"], "'$component': CPE correct");
 ok(CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: CPE list change detected (CPE entry removed)");
 
 # ldconf: get its CPE list and check if its CPE list modification is detected
 # (subscribed path changed)
 $component = 'ldconf';
 @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-$CPE_length = @CPE;
-is($CPE_length, 3, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
-is($CPE[2],"/system/kernel", "'$component': third CPE correct");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}", "/system/kernel"], "'$component': CPE correct");
 ok(CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: CPE list change detected (CPE entry modified)");
 
 # grub: get its CPE list and verify that no change is detected
 # (identical CPE list, no configuration change)
 $component = 'grub';
 @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-$CPE_length = @CPE;
-is($CPE_length, 3, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
-is($CPE[2],"/system/kernel", "'$component': third CPE correct");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}", "/system/kernel"], "'$component': CPE correct");
 ok(!CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: no CPE list or configuration change detected");
 
 # spma: get its CPE list and verify that no change is detected
 # (subscribed path missing in new configuration)
 $component = 'spma';
 @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-$CPE_length = @CPE;
-is($CPE_length, 4, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
-is($CPE[2],"/software/repositories", "'$component': third CPE correct");
-is($CPE[3],"/software/packages", "'$component': fourth CPE correct");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}", "/software/repositories", "/software/packages"], "'$component': CPE correct");
 ok(!CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: no CPE list or configuration change detected");
 
 # filecopy: get its CPE list and check if change is detected
 # (subscribed path missing in old configuration)
 $component = 'filecopy';
 @CPE = CDISPD::Utils::get_CPE($comp_config_initial,$component);
-$CPE_length = @CPE;
-is($CPE_length, 3, "'$component' has the expected number of CPE");
-is($CPE[0],COMP_CONFIG_PATH."/$component", "'$component': first CPE correct (configuration module configuration)");
-is($CPE[1],"/software/packages/".CDISPD::Utils::escape("ncm-$component"), "'$component': second CPE correct (configuration module package)");
-is($CPE[2],"/software/repositories", "'$component': third CPE correct");
+is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$component}", "/software/repositories"], "'$component': CPE correct");
 ok(CDISPD::Utils::changed_CPE($comp_config_initial,$comp_config_final,$component), "$component: configuration change (new CPE in current profile)");
 
 
 Test::NoWarnings::had_no_warnings();
-

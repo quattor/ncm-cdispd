@@ -27,7 +27,7 @@ our @ISA = qw(Exporter);
 
 use CAF::Object qw (SUCCESS throw_error);
 use EDG::WP4::CCM::CacheManager;
-use EDG::WP4::CCM::Path;
+use EDG::WP4::CCM::Path 16.8.0;
 
 our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
 our $this_app;
@@ -41,43 +41,7 @@ use constant COMP_CONFIG_PATH => '/software/components';
 
 =head1 Available functions
 
-=over 4
-
-
-=item escape ($string):string
-
- This function replaces non alphanumeric characters by an underscore followed
- by the character hexadecimal code (2 digits).
-
- Arguments
-    - $string: a string whose non alphanumeric characters must be escaped
-
- Return value: the escaped string
-
- Note: this function could be replaced by a generic one if one is made available
-
-=cut
-
-sub escape {
-    my $str = shift;
-    unless ( defined($str) ) {
-        $this_app->error("escape(): missing argument");
-        return;
-    }
-
-    my @str = split //, $str;
-    my @e_str;
-
-    for my $c (@str) {
-        if ( $c !~ /\w/ ) {
-          $c = sprintf("_%2x",ord($c));
-        }
-        push @e_str, $c;
-    }
-
-    return join('',@e_str);
-}
-
+=over
 
 =item clean_ICList
 
@@ -299,7 +263,7 @@ sub get_CPE
 
     # add the component package to @list, except if auto-registration
     # of packages has been disabled
-    my $pkg_path = "/software/packages/".escape("ncm-$component");
+    my $pkg_path = "/software/packages/{ncm-$component}";
     if ( $this_app->option('noautoregpkg') ) {
         $this_app>verbose("noautoregpkg option set, not adding component package path $pkg_path to CPE list");
     } else {
