@@ -236,7 +236,7 @@ use LC::Exception;
 use EDG::WP4::CCM::CacheManager;
 use CDISPD::Application;
 use CDISPD::Utils qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
-use CAF::FileEditor;
+use CAF::FileReader;
 
 use constant CONFIG_ROOT => "/";
 use constant NCD_EXECUTABLE => "/usr/sbin/ncm-ncd";
@@ -644,7 +644,7 @@ sub log_failed_components
         my @comps = grep { -f "$comp_state_dir/$_" } readdir($dh);
         $this_app->warn("No failed component found in the component state directory ($comp_state_dir)") if ( @comps == 0 );
         foreach my $component (sort(@comps)) {
-            my $fh = CAF::FileEditor->new("$comp_state_dir/$component");
+            my $fh = CAF::FileReader->new("$comp_state_dir/$component");
             my $comp_msg = "$fh";
             chomp $comp_msg;
             $comp_msg = "(no message)" unless $comp_msg;
