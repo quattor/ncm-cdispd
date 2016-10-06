@@ -255,7 +255,7 @@ sub get_CPE
     # of components has been disabled
     my $comp_path = COMP_CONFIG_PATH."/$component";
     if ( $this_app->option('noautoregcomp') ) {
-        $this_app>verbose("noautoregcomp option set, not adding component path $comp_path to CPE list");
+        $this_app->verbose("noautoregcomp option set, not adding component path $comp_path to CPE list");
     } else {
         $this_app->debug(3, "add component path $comp_path to CPE list");
         push @list, $comp_path;
@@ -265,7 +265,7 @@ sub get_CPE
     # of packages has been disabled
     my $pkg_path = "/software/packages/{ncm-$component}";
     if ( $this_app->option('noautoregpkg') ) {
-        $this_app>verbose("noautoregpkg option set, not adding component package path $pkg_path to CPE list");
+        $this_app->verbose("noautoregpkg option set, not adding component package path $pkg_path to CPE list");
     } else {
         $this_app->debug(3, "add component package path $pkg_path to CPE list");
         push @list, $pkg_path;
