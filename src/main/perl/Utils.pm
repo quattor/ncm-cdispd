@@ -28,6 +28,7 @@ our @ISA = qw(Exporter);
 use CAF::Object qw (SUCCESS throw_error);
 use EDG::WP4::CCM::CacheManager;
 use EDG::WP4::CCM::Path 16.8.0;
+use NCD::ComponentProxyList 16.8.1 qw(set_state);
 
 our @EXPORT = qw(COMP_CONFIG_PATH compare_profiles add_component clean_ICList);
 our $this_app;
@@ -119,13 +120,7 @@ sub add_component
             push( @{ $this_app->{ICLIST} }, $component );
 
             if ( $this_app->option('state') ) {
-                # Touch the file to indicate the last time the component has been scheduled to run
-                my $state_file = $this_app->option('state')."/$component";
-                if ( open( TOUCH, ">$state_file" ) ) {
-                    close(TOUCH);
-                } else {
-                    $this_app->warn("Cannot update state for component $component (state file=$state_file, status=$!)");
-                }
+                set_state($this_app, $component, '', $this_app->option('state'), $this_app->option('noaction'));
             }
         }
     } else {

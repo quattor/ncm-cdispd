@@ -32,9 +32,6 @@ the other related utility functions (remove_component(), clean_ICList())
 # as the config file is not open with CAF::FileEditor... file location cannot be mocked)
 #set_file_contents(CDISPD_CONFIG_FILE, 'state = /var/run/quattor-components');
 my $statedir = getcwd."/target/state/add_remove_component";
-rmtree($statedir) if -d $statedir;
-mkpath($statedir);
-ok(-d $statedir, "new/empty statedir created");
 
 unless ( $this_app = CDISPD::Application->new($0,['--state', $statedir]) ) {
     throw_error("Failed to initialize CAF::Application");
@@ -53,14 +50,19 @@ sub statefiles_equal_ICLIST
 
     my $cmpsmsg = join(", ", @$comps);
 
-    my $statefiles = [sort(map{basename($_)} grep {-f $_} glob("$statedir/*"))];
+    my $pattern = "^$statedir/";
+    # like a sort(map{basename($_)} grep {-f $_} glob("$statedir/*")
+    my $statefiles = [map { s/$pattern//; $_ } grep {m/$pattern/} sort(keys(%Test::Quattor::files_contents))];
     my $stfmsg = join(", ", @$statefiles);
 
+    diag explain $statefiles;
+    
     is_deeply($this_app->{ICLIST}, $comps, "ICLIST contains $cmpsmsg $msg");
     is_deeply([sort(@{$this_app->{ICLIST}})], $statefiles, "statefiles $stfmsg equal to components $cmpsmsg: $msg");
 }
 
 my $iclist_length;
+%Test::Quattor::files_contents = ();
 
 # Add one component
 my $component1 = 'named';
@@ -112,4 +114,3 @@ add_component($comp_config,$component1);
 is_deeply($this_app->{ICLIST}, [], "ICLIST is empty");
 
 done_testing();
-
