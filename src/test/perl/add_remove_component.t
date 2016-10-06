@@ -1,9 +1,8 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-# nr tests + 2 for NoWarnings test
-use Test::More tests => 18;
-use Test::NoWarnings;
+
+use Test::More;
 use Test::Quattor qw(profile1 broken_profile);
 use CDISPD::Utils;
 use CDISPD::Application qw(CDISPD_CONFIG_FILE);
@@ -16,8 +15,6 @@ use File::Basename qw(basename);
 $CAF::Object::NoAction = 1;
 
 our $this_app;
-
-Test::NoWarnings::clear_warnings();
 
 =pod
 
@@ -114,4 +111,5 @@ $component1 = 'spma';
 add_component($comp_config,$component1);
 is_deeply($this_app->{ICLIST}, [], "ICLIST is empty");
 
-Test::NoWarnings::had_no_warnings();
+done_testing();
+
