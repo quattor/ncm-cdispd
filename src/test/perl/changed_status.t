@@ -1,19 +1,18 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 8;
-use Test::NoWarnings;
+
+use Test::More;
 use Test::Quattor qw(profile1 profile2 broken_profile);
 use CDISPD::Utils;
 use CDISPD::Application;
 use Readonly;
 use CAF::Object;
+use CAF::Reporter qw($VERBOSE_LOGFILE);
 
 $CAF::Object::NoAction = 1;
 
 our $this_app;
-
-Test::NoWarnings::clear_warnings();
 
 =pod
 
@@ -27,6 +26,9 @@ This is a test suite for CDISPD::Utils::change_status() function
 unless ( $this_app = CDISPD::Application->new($0,[]) ) {
     throw_error("Failed to initialize CAF::Application");
 }
+
+# ugly, but no other way
+is($this_app->_rep_setup()->{$VERBOSE_LOGFILE}, 1, "verbose_logfile is enabled");
 
 my $config_initial = get_config_for_profile("profile1");
 my $comp_config_initial = $config_initial->getElement(COMP_CONFIG_PATH)->getTree();
@@ -52,11 +54,10 @@ $component = 'ccm';
 ok(CDISPD::Utils::changed_status($comp_config_initial,$comp_config_final,$component), "$component: status changed");
 
 
-# Check 'named' component with a broken profile (missing active property) either 
+# Check 'named' component with a broken profile (missing active property) either
 # as the initial or the final profile.
 $component = 'named';
 ok(!CDISPD::Utils::changed_status($comp_config_broken,$comp_config_final,$component), "$component: active property missing in initial profile");
 ok(!CDISPD::Utils::changed_status($comp_config_initial,$comp_config_broken,$component), "$component: active property missing in final profile");
 
-Test::NoWarnings::had_no_warnings();
-
+done_testing();

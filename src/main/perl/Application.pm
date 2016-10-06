@@ -24,7 +24,7 @@ This class provides the ncm-cdispd specific methods used to initialize the CAF::
 use Exporter;
 
 use CAF::Application;
-use CAF::Reporter;
+use CAF::Reporter 16.8.1;
 use CAF::Process;
 use CAF::Object;
 use LC::Exception qw (SUCCESS throw_error);
@@ -182,6 +182,9 @@ sub _initialize {
 
     # start using log file
     $self->set_report_logfile( $self->{'LOG'} );
+
+    # Enable verbose_logfile
+    $self->setup_reporter(undef, undef, undef, undef, 1);
 
     return SUCCESS;
 
