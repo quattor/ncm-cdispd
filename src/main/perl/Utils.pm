@@ -310,6 +310,15 @@ sub changed_CPE
     my @old_CPE = get_CPE($old_tree, $component);
     my @new_CPE = get_CPE($new_tree, $component);
 
+    foreach my $cpe (@new_CPE) {
+        unless ( $this_app->{NEW_CFG}->elementExists($cpe) ) {
+            # should be checked in the component type
+            $this_app->error("$cpe doesn't exist in new profile: component $component has subscribed a non existent path. ",
+                             "Returning CPE not changed (bug in profile?).");
+            return 0;
+        }
+    }
+
     # Check that both lists are different size
     if ( @new_CPE != @old_CPE ) {
         $this_app->debug(3, "CPE list changed between previous and current profiles (different number of element)");
@@ -323,15 +332,7 @@ sub changed_CPE
         }
     }
 
-    # TODO: check for non-existing paths should run first before any code that returns 1?
     foreach my $cpe (@new_CPE) {
-        unless ( $this_app->{NEW_CFG}->elementExists($cpe) ) {
-            # should be checked in the component type
-            $this_app->error("$cpe doesn't exist in new profile: component $component has subscribed a non existent path. ",
-                             "Returning CPE not changed (bug in profile?).");
-            return 0;
-        }
-
         unless ( $this_app->{OLD_CFG}->elementExists($cpe) ) {
             $this_app->debug(3, "$cpe doesn't exist in previous profile: assume it is new and CPE has changed");
             return 1;

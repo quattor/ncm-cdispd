@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Quattor qw(profile1 profile2);
+use Test::Quattor qw(profile1 profile2 profile2_missing_package);
 use CDISPD::Utils;
 use CDISPD::Application;
 use Readonly;
@@ -30,6 +30,7 @@ my $config_initial = get_config_for_profile("profile1");
 my $comp_config_initial = $config_initial->getElement(COMP_CONFIG_PATH)->getTree();
 my $config_final = get_config_for_profile("profile2");
 my $comp_config_final = $config_final->getElement(COMP_CONFIG_PATH)->getTree();
+
 
 $this_app->{OLD_CFG} = $config_initial;
 $this_app->{NEW_CFG} = $config_final;
@@ -86,6 +87,13 @@ is_deeply(\@CPE, [COMP_CONFIG_PATH."/$component", "/software/packages/{ncm-$comp
           "'$component': CPE correct");
 ok(CDISPD::Utils::changed_CPE($comp_config_initial, $comp_config_final, $component),
    "$component: configuration change (new CPE in current profile)");
+
+# same profile with filecopy with missing CPE (non-existing autoregpkg CPE)
+my $config_final_missing_package = get_config_for_profile("profile2_missing_package");
+my $comp_config_final_missing_package = $config_final_missing_package->getElement(COMP_CONFIG_PATH)->getTree();
+$this_app->{NEW_CFG} = $config_final_missing_package;
+ok(! CDISPD::Utils::changed_CPE($comp_config_initial, $comp_config_final_missing_package, $component),
+   "$component: no configuration change (new CPE has non-existing entry from missing package)");
 
 
 done_testing();
