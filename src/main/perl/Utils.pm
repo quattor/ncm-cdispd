@@ -221,8 +221,8 @@ sub is_active
 
 =item get_CPE
 
-Return the list of configuration paths (Configuration Path Entries) whose changes
-have been subscribed by the component.
+Return the arrayref of configuration paths (Configuration Path Entries) whose changes
+have been subscribed by the component and arrayref with CPEs that could be missing.
 
 Following paths are (possibly) added
 
@@ -246,6 +246,7 @@ sub get_CPE
     my ($comp_config, $component)  = @_;
 
     my @list = ();
+    my @optional_list = ();
     unless ( $comp_config && $component ) {
         $this_app->error("get_CPE(): missing argument(s)");
         return (@list);
@@ -266,6 +267,10 @@ sub get_CPE
     my $pkg_path = "/software/packages/{ncm-$component}";
     if ( $this_app->option('noautoregpkg') ) {
         $this_app->verbose("noautoregpkg option set, not adding component package path $pkg_path to CPE list");
+    } elsif ($comp_config->{$component}->{'ncm-module'}) {
+        $this_app->debug(3, "add component package path $pkg_path to optional CPE list ",
+                         "(the alias ncm-module ", $comp_config->{$component}->{'ncm-module'}, "is defined )");
+        push @optional_list, $pkg_path;
     } else {
         $this_app->debug(3, "add component package path $pkg_path to CPE list");
         push @list, $pkg_path;
@@ -278,7 +283,7 @@ sub get_CPE
         push @list, @paths;
     }
 
-    return (@list);
+    return \@list, \@optional_list;
 }
 
 =pod
@@ -307,10 +312,10 @@ sub changed_CPE
 
     $this_app->debug(3, "Check CPE configuration changes for $component");
 
-    my @old_CPE = get_CPE($old_tree, $component);
-    my @new_CPE = get_CPE($new_tree, $component);
+    my ($old_CPE, $old_CPE_optional) = get_CPE($old_tree, $component);
+    my ($new_CPE, $new_CPE_optional) = get_CPE($new_tree, $component);
 
-    foreach my $cpe (@new_CPE) {
+    foreach my $cpe (@$new_CPE) {
         unless ( $this_app->{NEW_CFG}->elementExists($cpe) ) {
             # should be checked in the component type
             $this_app->error("$cpe doesn't exist in new profile: component $component has subscribed a non existent path. ",
@@ -319,20 +324,27 @@ sub changed_CPE
         }
     }
 
+    foreach my $cpe_opt (@$new_CPE_optional) {
+        if ( $this_app->{NEW_CFG}->elementExists($cpe_opt) ) {
+            $this_app->debug(3, "optional CPE $cpe_opt for current profile exists, adding it to the list of CPEs");
+            push @$new_CPE, $cpe_opt;
+        }
+    }
+
     # Check that both lists are different size
-    if ( @new_CPE != @old_CPE ) {
+    if ( @$new_CPE != @$old_CPE ) {
         $this_app->debug(3, "CPE list changed between previous and current profiles (different number of element)");
         return 1;
     }
 
-    foreach my $cpe (@old_CPE) {
-        unless ( grep($_ eq $cpe, @new_CPE) ) {
+    foreach my $cpe (@$old_CPE) {
+        unless ( grep($_ eq $cpe, @$new_CPE) ) {
             $this_app->debug(3, "CPE list changed between previous and current profiles (entry '$cpe' removed)");
             return 1;
         }
     }
 
-    foreach my $cpe (@new_CPE) {
+    foreach my $cpe (@$new_CPE) {
         unless ( $this_app->{OLD_CFG}->elementExists($cpe) ) {
             $this_app->debug(3, "$cpe doesn't exist in previous profile: assume it is new and CPE has changed");
             return 1;
@@ -390,7 +402,7 @@ sub compare_profiles
     }
 
     # add to ICList those components whose status or CPEs have changed
-    foreach my $component (keys(%$new_tree)) {
+    foreach my $component (sort keys(%$new_tree)) {
         if ( changed_status($old_tree, $new_tree, $component) ) {
             $this_app->debug(2, "component $component: status changed" );
             add_component($new_tree, $component);
