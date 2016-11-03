@@ -726,8 +726,7 @@ while (1) {
     $this_app->debug( 3, "CID of last profile processed: " . $this_app->{OLD_CFID} );
 
     while ( $cm->getCurrentCid() == $this_app->{OLD_CFID} ) {
-        $this_app->verbose('no new profile found, sleeping');
-        $this_app->debug( 1, "sleep for " . $this_app->option('interval') . " seconds" );
+        $this_app->debug(1, "no new profile found, sleep for " . $this_app->option('interval') . " seconds" );
         sleep( $this_app->option('interval') );
     }
     $this_app->info("new profile arrived, examining...");
