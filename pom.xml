@@ -3,7 +3,7 @@
   <groupId>org.quattor.daemon</groupId>
   <artifactId>ncm-cdispd</artifactId>
   <packaging>pom</packaging>
-  <version>16.10.0-rc1</version>
+  <version>16.10.0-rc2-SNAPSHOT</version>
   <name>ncm-cdispd</name>
   <repositories>
     <repository>
