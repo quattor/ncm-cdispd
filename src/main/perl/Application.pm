@@ -1,12 +1,4 @@
-# ${license-info}
-# ${developer-info}
-# ${author-info}
-# ${build-info}
-
-package CDISPD::Application;
-
-use strict;
-use warnings;
+#${PMpre} CDISPD::Application${PMpost}
 
 =pod
 
@@ -21,15 +13,14 @@ This class provides the ncm-cdispd specific methods used to initialize the CAF::
 =cut
 
 
-use Exporter;
-
 use CAF::Application;
 use CAF::Reporter 16.8.1;
 use CAF::Process;
 use CAF::Object;
 use LC::Exception qw (SUCCESS throw_error);
 
-our @ISA = qw(CAF::Application CAF::Reporter Exporter);
+use parent qw(CAF::Application CAF::Reporter Exporter);
+
 our @EXPORT = qw(CDISPD_CONFIG_FILE);
 
 use constant CDISPD_CONFIG_FILE => "/etc/ncm-cdispd.conf";
@@ -38,7 +29,8 @@ use constant CDISPD_CONFIG_FILE => "/etc/ncm-cdispd.conf";
 # Public Methods/Functions for CAF
 #
 
-sub app_options {
+sub app_options
+{
 
     my $self = shift;
 
@@ -149,7 +141,8 @@ sub app_options {
 
 }
 
-sub _initialize {
+sub _initialize
+{
 
     my $self = shift;
 
@@ -177,7 +170,7 @@ sub _initialize {
     # start initialization of CAF::Application
     #
     unless ( $self->SUPER::_initialize(@_) ) {
-        return undef;
+        return;
     }
 
     # start using log file

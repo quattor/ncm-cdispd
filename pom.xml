@@ -14,7 +14,7 @@
   <parent>
     <groupId>org.quattor.maven</groupId>
     <artifactId>build-profile</artifactId>
-    <version>1.51</version>
+    <version>1.52</version>
   </parent>
   <scm>
     <connection>scm:git:git://github.com/quattor/ncm-cdispd.git</connection>
