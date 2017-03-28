@@ -209,11 +209,6 @@ one has exited, at the end of `ncm-ncd`.
 
 =cut
 
-BEGIN {
-    # use perl libs in /usr/lib/perl
-    unshift( @INC, '/usr/lib/perl' );
-}
-
 
 #############################################################
 # cdispd program and its functions
@@ -225,10 +220,14 @@ BEGIN {
 #               (very verbose!)
 #############################################################
 
-package main;
-
 use strict;
 use warnings;
+
+BEGIN {
+    # use perl libs in /usr/lib/perl
+    unshift( @INC, '/usr/lib/perl' );
+}
+
 use POSIX qw(setsid);
 
 use CAF::Object qw ( throw_error);
@@ -295,7 +294,8 @@ No return value.
 
 =cut
 
-sub register_signal {
+sub register_signal 
+{
 
     my $signal = shift;
     unless ( $signal ) {
@@ -369,7 +369,8 @@ Proccess HUP signal: reinitialize cdispd daemon
 
 =cut
 
-sub signal_reinitialize {
+sub signal_reinitialize 
+{
 
     my $signal = shift;
     unless ( $signal ) {
@@ -439,17 +440,17 @@ sub daemonize
         exit(-1);
     }
 
-    if ( !open( STDIN, '/dev/null' ) ) {
+    if ( !open(STDIN, '<', '/dev/null') ) {
         $this_app->error("Can't read /dev/null: $! : Exiting");
         exit(-1);
     }
 
-    if ( !open( STDOUT, ">> $logfile" ) ) {
+    if ( !open(STDOUT, ">>", $logfile) ) {
         $this_app->error("Can't write to $logfile: $! : Exiting");
         exit(-1);
     }
 
-    if ( !open( STDERR, ">> $logfile" ) ) {
+    if ( !open(STDERR, ">>", $logfile ) ) {
         $this_app->error("Can't write to $logfile: $! : Exiting");
         exit(-1);
     }
@@ -463,13 +464,14 @@ sub daemonize
 
     # Save the PID.
     if ( $this_app->option('pidfile') ) {
-        if ( !open( PIDFILE, ">" . $this_app->option('pidfile') ) ) {
+        if ( !open(my $PIDFILE, ">", $this_app->option('pidfile') ) ) {
             $this_app->error( "Cannot write PID to file \""
                   . $this_app->option('pidfile')
                   . "\": $! : Exiting" );
             exit(-1);
         }
-        print( PIDFILE "$$" );
+        print $PIDFILE "$$";
+        close $PIDFILE;
     }
 
     if ( $this_app->option('state') ) {
@@ -549,7 +551,7 @@ sub launch_ncd
     my $result = 0;    # Assume success
 
     my $p = CAF::Process->new([NCD_EXECUTABLE, '--configure'] , log => $this_app );
-    if (   defined( $this_app->{ICLIST} ) && scalar(@{$this_app->{ICLIST}}) ) {
+    if ( defined( $this_app->{ICLIST} ) && scalar(@{$this_app->{ICLIST}}) ) {
         # At this point, ICLIST should contain only components present in the last profile received.
         # The only case where a component may be in the list without being part of the configuration
         # is the following:
@@ -588,11 +590,11 @@ sub launch_ncd
             delay_signals();
 
             # Execute ncm-ncd and report exit status
-            sub act {
+            my $act = sub {
                 my ($logger, $message) = @_;
                 $logger->verbose($message);
             }
-            my $errormsg = $p->stream_output(\&act, mode => 'line', arguments => [$this_app]);
+            my $errormsg = $p->stream_output($act, mode => 'line', arguments => [$this_app]);
 
             my $ec = $?;
             my $msg = "ncm-ncd finished with status: ". ($ec >> 8) . " (ec $ec";

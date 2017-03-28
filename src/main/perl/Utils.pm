@@ -22,8 +22,8 @@ which components must be run.
 ####################################################################
 
 use POSIX qw(setsid);
-require Exporter;
-our @ISA = qw(Exporter);
+
+use parent qw(Exporter);
 
 use CAF::Object qw (SUCCESS throw_error);
 use EDG::WP4::CCM::CacheManager;
