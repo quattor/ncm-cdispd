@@ -294,7 +294,7 @@ No return value.
 
 =cut
 
-sub register_signal 
+sub register_signal
 {
 
     my $signal = shift;
@@ -369,7 +369,7 @@ Proccess HUP signal: reinitialize cdispd daemon
 
 =cut
 
-sub signal_reinitialize 
+sub signal_reinitialize
 {
 
     my $signal = shift;
