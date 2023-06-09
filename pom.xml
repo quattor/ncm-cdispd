@@ -71,6 +71,10 @@
             <name>${project.artifactId}</name>
             <needarch>noarch</needarch>
             <url>https://github.com/quattor/ncm-cdispd/tree/master</url>
+            <requires>
+              <require>crontabs</require>
+              <require>logrotate</require>
+            </requires>
             <mappings>
               <mapping>
                 <directory>/usr/lib/perl</directory>
