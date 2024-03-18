@@ -1,0 +1,14 @@
+[Unit]
+Description=Configuration Dispatch Daemon waits for new incoming configuration profiles
+After=network.target
+After=network-online.target
+Before=shutdown.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/ncm-cdispd
+KillMode=process
+PIDFile=/var/run/ncm-cdispd.pid
+
+[Install]
+WantedBy=multi-user.target
