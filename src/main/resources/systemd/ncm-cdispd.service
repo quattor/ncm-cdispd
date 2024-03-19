@@ -8,7 +8,7 @@ Before=shutdown.target
 Type=simple
 ExecStart=/usr/sbin/ncm-cdispd
 KillMode=process
-PIDFile=/var/run/ncm-cdispd.pid
+PIDFile=/run/ncm-cdispd.pid
 
 [Install]
 WantedBy=multi-user.target
