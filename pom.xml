@@ -74,7 +74,6 @@
             <requires>
               <require>crontabs</require>
               <require>logrotate</require>
-              <require>chkconfig</require>
             </requires>
             <mappings>
               <mapping>
@@ -102,16 +101,6 @@
                     </includes>
                   </source>
                 </sources>
-              </mapping>
-              <mapping>
-                <sources>
-                  <source>
-                    <location>${project.build.directory}/daemon</location>
-                  </source>
-                </sources>
-                <directory>/etc/init.d</directory>
-                <filemode>755</filemode>
-                <directoryIncluded>false</directoryIncluded>
               </mapping>
               <mapping>
                 <sources>
@@ -191,7 +180,8 @@
             <preinstallScriptlet>
               <script><![CDATA[
         if [ "$1" -eq 2 ]; then  # upgrade
-                if [ -x /bin/systemctl -a -h /etc/rc3.d/S30${project.artifactId} ]; then
+                if [ -x /sbin/chkconfig -a -x /sbin/service -a -h /etc/rc3.d/S30${project.artifactId} ]
+                then
                         # Upgrade from the initscript version. The daemon needs to be
                         # stopped, otherwise, systemd gets confused
                         /sbin/service ${project.artifactId} stop > /dev/null 2>&1 || :
@@ -203,26 +193,17 @@
             <postinstallScriptlet>
               <script><![CDATA[
         if [ "$1" -eq 1 ]; then  # first install
-                if [ -x /bin/systemctl ]; then
-                        /bin/systemctl preset ${project.artifactId}.service > /dev/null 2>&1 || :
-                else
-                        /sbin/chkconfig --add ${project.artifactId}
-                fi
+                /bin/systemctl preset ${project.artifactId}.service > /dev/null 2>&1 || :
         elif [ "$1" -eq 2 ]; then  # upgrade
                 # Ensure that profile has been updated to the last format, if any change, to prevent potential ncm-cdispd crash at restart
                 ccm-fetch --force
-                if [ -x /bin/systemctl ]; then
-                        /bin/systemctl daemon-reload > /dev/null 2>&1 || :
+                /bin/systemctl daemon-reload > /dev/null 2>&1 || :
 
-                        # Calling 'preset' here is arguably wrong, but not doing it could leave
-                        # the daemon disabled when upgrading from the init script version
-                        /bin/systemctl preset ${project.artifactId}.service > /dev/null 2>&1 || :
+                # Calling 'preset' here is arguably wrong, but not doing it could leave
+                # the daemon disabled when upgrading from the init script version
+                /bin/systemctl preset ${project.artifactId}.service > /dev/null 2>&1 || :
 
-                        /bin/systemctl restart ${project.artifactId} > /dev/null 2>&1 || :
-                else
-                        /sbin/chkconfig --add ${project.artifactId}
-                        /sbin/service ${project.artifactId} restart > /dev/null 2>&1 || :
-                fi
+                /bin/systemctl restart ${project.artifactId} > /dev/null 2>&1 || :
         fi
               ]]></script>
             </postinstallScriptlet>
@@ -230,11 +211,7 @@
               <script><![CDATA[
         if [ "$1" -eq 0 ]; then  # Uninstall rather than upgrade
                 # Do not stop the service as the uninstall may happen from within the service...
-                if [ -x /bin/systemctl ]; then
-                        /bin/systemctl --no-reload disable ${project.artifactId}.service > /dev/null 2>&1 || :
-                else
-                        /sbin/chkconfig --del ${project.artifactId}
-                fi
+                /bin/systemctl --no-reload disable ${project.artifactId}.service > /dev/null 2>&1 || :
         fi
               ]]></script>
             </preremoveScriptlet>
