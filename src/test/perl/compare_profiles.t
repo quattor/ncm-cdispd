@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 12;
+use Test::More;
 use Test::NoWarnings;
 use Test::Quattor qw(profile1 profile2);
 use CDISPD::Utils;
@@ -67,3 +67,4 @@ for (my $i=0; $i<$iclist_length; $i++) {
 
 Test::NoWarnings::had_no_warnings();
 
+done_testing();
