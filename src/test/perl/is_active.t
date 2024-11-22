@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More;
 use Test::NoWarnings;
 use Test::Quattor qw(profile1 broken_profile);
 use CDISPD::Utils;
@@ -42,3 +42,4 @@ ok(!CDISPD::Utils::is_active($comp_config,$component), "Configuration module $co
 
 Test::NoWarnings::had_no_warnings();
 
+done_testing();
